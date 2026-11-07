@@ -1,0 +1,54 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+# Read-only token: this workflow never writes to the repository.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      # Actions are pinned to exact commits, not tags that can be moved.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Tests (standard library only, including hostile-input tests)
+        run: python -I -m unittest discover -s tests -v
+
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - name: No compiled files, binaries or symlinks (catalog rule 17)
+        run: |
+          bad=$(git ls-files -s | awk '$1 == "120000" {print $4}')
+          bad="$bad $(git ls-files | grep -E '\.(pyc|pyo|so|dylib|dll|exe|whl|zip|tar|gz)$' || true)"
+          for f in $(git ls-files); do
+            head -c 4 "$f" | grep -qaE $'^(\x7fELF|MZ|\xcf\xfa\xed\xfe|\x00asm)' && bad="$bad $f"
+          done
+          if [ -n "$(echo $bad | tr -d ' ')" ]; then echo "Not allowed: $bad"; exit 1; fi
+          echo "clean"
+      - name: No invisible or direction-changing characters in any file
+        run: |
+          if git ls-files -z | xargs -0 grep -nP '[\x{200B}-\x{200F}\x{2028}-\x{202E}\x{2060}-\x{206F}\x{FEFF}]'; then
+            echo "Invisible characters found: write them as escape codes instead"; exit 1
+          fi
+          echo "clean"
+      - name: No obvious secrets
+        run: |
+          if git grep -nIE '(sk-[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{30,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY)' -- . ':!SECURITY.md'; then
+            echo "Possible secret found"; exit 1
+          fi
+          echo "clean"

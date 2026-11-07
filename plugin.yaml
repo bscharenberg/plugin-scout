@@ -1,0 +1,14 @@
+name: plugin-scout
+version: 0.1.0
+manifest_version: 2
+description: "Checks your Hermes plugin setup and finds plugins that fit you: conflicts between plugins or with your settings, picks based on how you use Hermes, and a weekly note on what is new for you."
+author: "Bryon Scharenberg"
+license: MIT
+requires_hermes: ">=0.23.0"
+provides_tools:
+  - scout_conflicts
+  - scout_whats_new
+  - scout_picks
+  - scout_weekly
+  - scout_dismiss
+provides_hooks: []

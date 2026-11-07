@@ -1,0 +1,395 @@
+{
+ "generated_at": "2026-11-06T00:57:12.804076+00:00",
+ "entries": [
+  {
+   "name": "hermes-dreaming",
+   "repo": "https://github.com/itpartypattaya/hermes-dreaming",
+   "sha": "56243006eceb54a245d748f2eb39679fa90d4197",
+   "description": "Nightly deterministic memory consolidation (\"dreaming\"): corroborates candidate facts with what humans actually said on distinct days, proposes the few worth keeping with a verbatim edit anchor, asks whether stale memory entries still hold, and wakes the agent only when there is work \u2014 including a memory file close to its char limit. Fact sources: the holographic store, a SQLite or JSONL export, or none. Secrets and instructions are screened by the dream's own rules plus a verbatim copy of the holographic plugin's screen (scripts/holo_screen.py, MIT, same maintainer), applied to stored facts and human messages before anything reaches memory, the report or the model. Portable Agent Plugins v1 package (plugin.json + skills/); no tools, hooks, middleware or env vars. Disclosure \u2014 by default the scripts make no network or LLM calls and open state.db and every fact store read-only (SQLite mode=ro; with holographic >= 0.15.0 including its fact_versions/fact_confirmations tables, to say who stands behind a fact); they also read Hermes config.yaml's memory/timezone keys and the holographic plugin's db_path/scope/cron_writes/min_trust_threshold (the floor recall applies, so a rejected fact is only reported when the store still trusts it) and, to say so in install.py --check, embeddings/mirror_memory_writes, the pending/memory approval queue, cron/jobs.json (to find their own jobs) and \u2014 only when chat_stores is set, with holographic scope user/chat/thread \u2014 the per-chat databases next to the store (counts of every one; facts of the chats listed in promote_from). An optional cloud judge (judge in dreaming.json, off by default; off, its code is not even loaded) may, once the owner enables it, send for each mention the rules counted the fact's text and that person's own words (no reply quote, link, id, sender or time; names inside the text may be included; screened for secrets and instructions first), only from the chats, sources and chat stores the owner lists, over HTTPS to the providers the owner lists, in the owner's order: OpenRouter's Decisions API (model typesafe/jev-1.14, Jev by TypeSafe; the data reaches OpenRouter and TypeSafe) and/or OpenAI's Decisions API (model gpt-6-luna); when the first gives no usable answer the same pair may reach the next. A verdict can only remove a counted mention \u2014 from promotion, confirmation, fact decay, \"said again\" after a rejection, the selection of new facts and conflicts, and evidence. Keys OPENROUTER_API_KEY / OPENAI_API_KEY are read from the environment or, since Hermes withholds these provider keys from cron scripts, straight from their own line in $HERMES_HOME/.env; the judge's calls are billed to those keys. It keeps a 90-day verdict cache and a 90-day local journal of the pairs sent in $HERMES_HOME/cache (the journal is deleted on nights the judge is off); the nightly spending cap ($0.05 by default) is soft; data already sent cannot be recalled and falls under the providers' retention terms. The user-run installer copies three gate scripts into $HERMES_HOME/scripts, seeds $HERMES_HOME/dreaming.json and, through Hermes' cron Python API, creates (or with --rebind re-points) two agent cron jobs bound to this plugin's own skill with only the memory toolset, plus one no_agent job (every 15 min, no model) that reads the fact stores to keep a hash index of diary lines and, for facts holographic >= 0.8.0 has forgotten, rewrites the dream's own cache files, judge files and diary without them, deletes the output files of the dream's own cron jobs that mention them (by id or verbatim text) and deletes the set-aside copies of its own broken state files; with a chat --deliver target the reports are attached as a session you can reply to. The agent runs send recent human messages (up to 200 / 40k chars, each with its chat type and sender id) and fact snippets to your configured model; state goes to $HERMES_HOME/cache and a diary to $HERMES_HOME/memories/DREAMS.md (configurable); memory files are changed by the agent only through the regular memory tool, and with the holographic provider it also adds candidate facts via fact_store (with holographic >= 0.15.0 marked said or inferred; with holographic >= 0.8.0 also change / end / correct / forget, the last three only on a human's own answer; forget is irreversible), lowers trust on human-rejected facts via fact_feedback, with holographic >= 0.15.0 raises trust (fact_feedback confirmed, +0.05, at most 10 facts a night) on facts people repeated on two or more different days and, when keywords.enabled is set (off by default), adds search keywords to facts via fact_store update. Since 3.4.0, with holographic >=0.19.0 and profile scope, it also reads fact_merges and current version ids to propose disjoint duplicate pairs. It saves immutable proposal numbers, both full texts, version ids, origins, keywords and the provider database path in cache/dream-proposals.json; open proposals expire after 180 days and closed ones are removed after 30 days. Full pair texts are included in the agent report and therefore reach the configured agent model. Old facts are merged by fact_store only after the adult memory owner approves the exact proposal; the response checks the database and uses expect to refuse changed versions. Scheduled extraction may merge only a newly added paraphrase from its own session into an existing fact, never old facts from other sessions. The scripts themselves still open the fact store read-only. The sweep also cleans the state of merged copies and archives their hashes so a later forget can remove older untagged diary copies; merging itself does not erase the diary. No new credentials, network providers or tools are introduced. Version 3.4.2 clarifies that forget cleans the store and the skill's own files; Git history, external database dumps, system backups and Hermes session history require separate cleanup. Reports distinguish a successful store deletion from a retained external copy and do not promise that retrying removes a documented history boundary. Version 3.5.0 adds explicit cron maintenance: known stock prompts are synchronized while custom prompts are preserved; --update-existing applies only explicitly supplied settings and --job-id scopes the entire operation. cron.expected_roles controls desired creation without pausing existing jobs. --upgrade validates the request before copying gate scripts and updating cron through public APIs, then checks the result. Checks expose paused jobs, execution modes, missing roles and duplicates; no automatic activation or job deletion. --inherit-model explicitly clears both model and provider pins. The public cron update API has no CAS; avoid concurrent configuration edits during installation. Version 3.6.0 adds opt-in read-only task-outcome summaries and recorded memory-attempt explanations from holographic >=0.20.0 (experience_schema=1). It reads bounded attempt/version references and agent-reported outcomes; usefulness does not change truth, trust, ranking or MEMORY.md. It makes no new model or network calls and keeps no second correction-text cache. Explicit --memory-store must be in chat_stores.promote_from; stores are never joined. task_outcomes: true adds only summary counts to the ordinary nightly result and creates no extra wakeup. Missing capability is reported as unsupported, not as a successful empty journal. Human corrections reported by the agent are not authenticated human confirmation. Version 3.6.1 reuses parsed numbers within a bounded in-memory nightly cache, reducing repeated work without changing contradiction rules. Version 3.6.2 copies the cron gate scripts atomically (an interrupted install keeps the previous gate) and names any cron job the installer refuses to change with the fix. Version 3.7.0 keeps the whole-store duplicate search within its nightly budget on large stores (it also narrows candidates by the numbers and names the pair rule requires; the rule still decides every pair) and names the store in task-outcome summaries. Version 3.7.1 derives each message's data once per nightly pass, with memory bounded by corroboration.memory_mb (default 256 MB; above it data is rebuilt on demand, never changing decisions). Version 3.7.2 makes the quarantine screen about 40\u00d7 faster on long messages with byte-identical decisions (re-vendored holographic screen 0.22.1). Version 3.7.3 fixes an install-time scanner false positive in that screen's start list (3.7.2 was refused by hermes plugins install) and runs hermes plugins validate in CI. Version 3.7.4 changes no behaviour: the vendored holographic screen is copied whole and checked before it is written. Version 3.8.0 no longer promotes an agent's conclusion nobody confirmed (holographic origin inferred) to MEMORY.md by any corroboration route; people repeating it offer it for confirmation instead, and stores without origins are promoted as before; --explain says why, and --memory-explain keeps the provider's count of candidates that changed before the record. Version 3.8.4 keeps, for each memory entry, hashed word stems and numbers plus a 60-character preview (none for an entry with a secret) in the loss-guard snapshot in $HERMES_HOME/cache, so an entry the agent compressed, reworded or merged is no longer reported as lost; the alert names lost entries by that preview. Version 3.8.5 has the nightly agent change memory entries with the memory tool's patch (Hermes 0.22 removed replace; replace remains only as the fallback for Hermes 0.21), counts a patch staged in the pending/memory approval queue as waiting, and compares a lost entry only with entries the night wrote (also across a split, with numbers compared as numbers); for an entry of fewer than two word stems the snapshot also keeps hashed stems of its short words or, for one with no words and no secret, hashed character trigrams; state files with a UTF-8 BOM are read.",
+   "maintainer": "itpartypattaya",
+   "tier": "community",
+   "category": "memory",
+   "requires_hermes": ">=0.21.0",
+   "docs_url": "https://github.com/itpartypattaya/hermes-dreaming/blob/56243006eceb54a245d748f2eb39679fa90d4197/README.md",
+   "version": "3.8.5",
+   "image": "https://raw.githubusercontent.com/itpartypattaya/hermes-dreaming/56243006eceb54a245d748f2eb39679fa90d4197/docs/banner.png",
+   "screenshots": [
+    "https://raw.githubusercontent.com/itpartypattaya/hermes-dreaming/56243006eceb54a245d748f2eb39679fa90d4197/docs/overview.png",
+    "https://raw.githubusercontent.com/itpartypattaya/hermes-dreaming/56243006eceb54a245d748f2eb39679fa90d4197/docs/lifecycle.png",
+    "https://raw.githubusercontent.com/itpartypattaya/hermes-dreaming/56243006eceb54a245d748f2eb39679fa90d4197/docs/files.png",
+    "https://raw.githubusercontent.com/itpartypattaya/hermes-dreaming/56243006eceb54a245d748f2eb39679fa90d4197/docs/judge.png"
+   ],
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   },
+   "known_issues": [
+    "Duplicate detection is a heuristic for questions, not proof that facts mean the same thing. Old facts require the owner to approve both complete texts. This section is disabled without holographic 0.19.0, outside profile scope, or when the provider database cannot be verified; a merge has no automatic unmerge.",
+    "Cron maintenance requires a single configuration writer; the public cron update API cannot atomically reject every concurrent manual edit. A paused job may already have an execution in progress."
+   ]
+  },
+  {
+   "name": "hermes-loadout",
+   "repo": "https://github.com/qwertyuiop97/hermes-loadout",
+   "sha": "e31ad580756a6481d38fac0b18ddc3fd0239d124",
+   "description": "Desktop pane to manage skills and MCP connections across agent apps: save named loadouts, review changes, apply them, and undo the latest managed operation. Agent half is inert (no tools or hooks). Disclosure \u2014 MCP sync copies your Hermes mcp_servers env/header secrets into ~/.codex/config.toml and claude_desktop_config.json (with 0600 backups).",
+   "maintainer": "qwertyuiop97",
+   "tier": "community",
+   "category": "desktop",
+   "docs_url": "https://github.com/qwertyuiop97/hermes-loadout#readme",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "holographic",
+   "title": "Holographic",
+   "repo": "https://github.com/itpartypattaya/hermes-plugin-holographic",
+   "sha": "6fe7d424cdc1b197e4a1f2dc1542e9e3869bf4f0",
+   "version": "0.26.4",
+   "description": "Local fact-store memory provider: SQLite with FTS5 keyword search (word forms in English, Russian, Spanish, French, Portuguese, Indonesian, German, Hindi, Arabic, Bengali, Italian, Turkish, Polish and Dutch; Russian and English words of the same root at a lower weight, from bundled DerivBase.Ru (Apache-2.0) and Open English Wordnet (CC BY 4.0) pairs; German compounds and German and Spanish irregular verb forms from bundled Wikidata Lexemes tables (CC0); Chinese, Japanese, Korean and Thai by character n-grams, Chinese also split into words with jieba's dictionary (MIT), Traditional and Simplified Chinese compared as one through a bundled OpenCC table (Apache-2.0), Japanese spelling variants through SudachiDict's (Apache-2.0); synonyms through keywords the agent gives when it stores a fact), trust scores, entities with aliases and HRR (holographic reduced representation) recall, with no API key, network or model calls unless an optional online feature is switched on: search by meaning (embeddings: on) or rescoring by a cross-encoder (rerank: on), both off by default. The provider that shipped in-tree as plugins/memory/holographic, with the same provider name, config (plugins.hermes-memory-store) and memory_store.db, so `hermes update` moves existing users onto it; a file without merges keeps history schema 1; the first merge raises it to schema 2, after which writers of 0.15-0.18 refuse it until 0.19.0 or a pre-merge backup is restored. Taken over from Nous Research's handoff copy (NousResearch/hermes-plugin-holographic) and maintained by itpartypattaya; since 0.1.1 it fixes probe/reason/related/contradict, non-atomic writes and the never-written retrieval_count, gates recall by relevance without repeats, flags duplicates and conflicts when a fact is added, and honours the provider contract (read-only subagent contexts, hermes_home, mirror metadata, backup_paths); since 0.8.0 it keeps the history of every fact (change / end / correct / revert, search and list as_of a date) and `forget` erases a fact with all its versions from the file; since 0.16.0 a name guessed from a fact's text must be shaped like one and stays provisional until a second fact or a person confirms it, and entities can be renamed or deleted (the facts stay). Since 0.18.0 an optional, experimental second stage reorders the recall candidates with a cross-encoder at a /v1/rerank endpoint that answers in Cohere's shape without a key, such as llama-server (rerank: on, off by default). It does not raise hits: on the maintainer's held-out set (126 questions) it cut non-target facts in the top five by about 40 % and lines per turn by about a third, and lost about one target per hundred questions. Disclosure \u2014 local only unless an optional online feature (search by meaning or rescoring) is switched on: reads and writes one SQLite file per profile ($HERMES_HOME/memory_store.db unless db_path says otherwise), or with scope: user / chat / thread one file per user or chat in holographic-users/ or holographic-chats/ next to it; each fact version records where it was written (platform, chat type, chat and thread id, session id, the turn author's id and display name, and whether the person said it or the agent inferred it; never chat titles), shown in full by list, history and export and not in recall unless recall_source: short (date, display name, this or another chat); each confirmation of a fact by a person keeps its time, session id and that person's id (no text); forget deletes that and the confirmations with the fact and keeps only an HMAC of the text, keyed by a random key stored in the same file, as a tombstone; delete_entity removes a name, its aliases and links from the entity index (never a fact) and keeps an HMAC of each name the same way (not of an alias only a fact's text gave, which goes without one), and both rewrite the file so freed pages keep no copy; the first writable open after an upgrade that changes the extraction rules relinks the facts to their entities under the new rules (stores up to 2,000 facts and 500,000 characters; larger ones on fact_store rebuild_entities), changing only the names it guessed and their links, never a fact, a declared name or an alias someone gave; subagents never write, but a cron job's explicit fact_store / fact_feedback calls do unless cron_writes: false (on by default); no subprocesses or telemetry (at the debug log level the recall stages log fact ids and scores, never text), and no network calls or credentials unless embeddings: on or rerank: on (both off by default). With embeddings: on, the text of facts, and of messages and fact_store search queries that are not greetings, goes to the OpenAI-compatible embeddings endpoint the user configures, also after cron turns while cron_writes is on (embedding_url; https, plain http only to localhost, a private or link-local address, or a local host name such as one without a dot or ending in .local), with the key read from the environment variable the user names (embedding_key_env, OPENAI_API_KEY unless set, sent as a Bearer token to whatever embedding_url is configured, never stored in config) and no redirects followed; facts that recall would not inject, and facts and messages that look like they hold a secret (checked by pattern, best effort), are not sent; the vectors are kept in the same file (table fact_embeddings), deleted with their fact by forget / end / remove and all of them by the next writable session after the option is switched off; the provider keeps what it received under its own terms; with rerank: on, before a turn the user's message and up to rerank_top_k (40) candidate fact texts, and for a fact_store search its query and results, go to the rerank endpoint the user configures (rerank_url; https, plain http only to localhost, a private or link-local address, or a local host name), with no credentials and no redirects followed; facts that recall would not inject or that look like they hold a secret, and queries that hold one, are not sent; a failure or a slow answer gives the recall of rerank: off and pauses the endpoint (60 s, doubling to 900 s); nothing the endpoint returns is stored; the bundled language dictionaries are gzip-compressed plain-text word lists; with auto_extract on (off by default) user sentences that state a preference or decision are stored. Since 0.19.0, fact_store merge combines duplicate facts in one transaction while keeping each copy's history, sources and confirmations under its original id. The retained fact keeps its own text, trust and origin; copies leave current search and recall. Optional expect pins the exact shown versions and refuses changed participants without a write. Scheduled jobs can merge only copies created in their own session. Forgetting the retained fact also erases its merged copies. Merge is local and makes no new network or model calls. Version 0.19.1 adds strict tooling for comparing recorded margins; the normal RECALL_MARGIN remains 1.0. Version 0.19.2 closes a timed-out rerank or embeddings request socket so a server dripping response headers does not keep its worker alive. During TLS wrapping, cancellation is retained but the handshake can continue until its own socket timeout; DNS resolution is outside socket cancellation. Version 0.20.0 adds an opt-in local task-outcome journal and the memory-provider tool fact_experience: emitted and candidate fact/version identifiers, an optional short task and correction, outcome/reason and optional corrected-source references. It is separate from trust, origin and ranking. Agent reports are not authenticated human confirmations. Collection and detailed tracing are off by default; retention is bounded to 30 days and 1000 attempts per store, with up to 10 revisions per attempt. Forgetting any referenced fact removes the dependent attempt and outcome from the store. No new model, network or credential use; synchronous local writes add latency. PR #45 also loads NumPy on first use outside the plugin-loader lock; concurrent first callers wait for import completion. Version 0.20.1 limits SQLite busy waits for the optional journal and retries transient contention once. Failed receipts are reported and are not queued; the SQLite timeout is not a full search deadline. Version 0.20.2 writes no receipt for a prefetch that emits nothing, applies journal retention whenever a writer opens the store (also with the journal off) and scrubs removed outcome text from the file like a forgotten fact. Version 0.20.3 adds one system-prompt line, only with the journal on, asking the agent to record an outcome when the person corrects an answer that used recalled facts (an agent report, not human confirmation). Version 0.21.0 adds an opt-in prefetch_max_tokens budget for the recalled block: facts that do not fit are left out whole, never cut; off by default. Version 0.22.0 keeps entity links honest on a text change: a new entities list replaces the declared names, and a declared name the new text no longer says is dropped; revert restores a version's declared names from an additive version_names table (names with keyed hashes, removed with the version and by delete_entity in every spelling a tombstone covers, including by older releases through triggers). Version 0.22.1 makes the secret/instruction screen about 30\u00d7 faster on long texts with the same decisions (patterns unchanged; a prefilter chooses where they are tried). Version 0.22.2 sends a slow reranker only as many of the first candidates as its measured speed answers in half rerank_timeout (at least two), so a large pool no longer times out and pauses the endpoint; the candidates not sent keep their order behind the scored ones. Version 0.23.0 stops feedback (helpful/unhelpful) from refreshing a fact's age: optional temporal decay counts from when the current version was recorded, and updated_at changes only when the fact itself does; a correction with a new text (correct / update content) starts at its origin's trust without the old text's helpful marks, recalls and confirmations, like change, while a date-only correction keeps them and revert restores the old trust. Version 0.23.1 takes a correction that journal retention removed off the disk on the open connection (the file rewrite runs after the receipt write, with busy timeout 0 at every step) and clears only the rewrite mark it served. Version 0.24.0 adds two experimental features, both off by default and with no new network, model or credential use: memory_map.py, a command-line exporter nothing in the provider calls, which prints one store as a read-only JSON snapshot for a person to read (opened mode=ro in one read transaction; a forgotten fact is its id and date only; corrected versions and texts the safety screen hides carry no text; with --config it reads config.yaml's search settings, with --hermes-home the hermes-dreaming files about the profile store), whose output holds the facts' texts and so is personal data; and prefetch_clause_coverage: on, which gives each of two separate Russian or English questions in one message a second look at the facts the coverage gate left out. Version 0.25.0 limits the memory map export to 1000 facts and 300 names by default (--max-facts / --max-entities, 0 for none) and says what it cut in SNAP.limits; nothing else changes. Version 0.25.1 fixes recall by meaning dropping a fact that names a short Russian name in another grammatical case than the message (Eva as \u00ab\u0415\u0432\u0430\u00bb / \u00ab\u0415\u0432\u0443\u00bb): the name now also meets a capitalized word of the fact that may be a case form of it. Version 0.25.2 reads that word by its case ending rather than a short stem: names whose stem changes meet their forms (\u00ab\u041b\u0435\u0432\u00bb / \u00ab\u041b\u044c\u0432\u0430\u00bb), and different names that only shared a short stem (\u00ab\u0410\u043d\u044f\u00bb / \u00ab\u0410\u043d\u043d\u0430\u00bb) no longer meet; nothing else changes. Version 0.25.3 no longer imports NumPy when the provider starts (the first search that needs it does, as does opening a store whose vectors need re-encoding) and treats a NumPy that is installed but fails to import as missing, so recall goes on by words; finds a Latin word written into Chinese, Japanese, Korean or Thai text by itself; refuses at write, and leaves out of recall, a prompt addressed to an assistant and the agent's report of its own steps; and auto_extract (off by default) no longer stores a reply such as \"I like that\" as a preference; no change to defaults, schema or network behaviour. Version 0.26.0 adds an experimental presence gate, prefetch_presence_gate (off by default): with it on, a fact this provider injected is held back past the six-turn repeat window only while the model can verifiably still see it (its exact recall line inside a <memory-context> block the core fenced, or its fact id and text in a fact_store result), reading only the messages the core already passes to sync_turn, with no new storage, network, model or credential use; tool results now carry raw Unicode instead of Unicode escape sequences (a payload that cannot be encoded keeps the escaped form); change names the keywords it drops and correct writes the keywords it is given; with the gate off, recall is unchanged. Version 0.26.1 fixes that gate after an independent review: a sync the core queued before a compaction no longer counts as the current view, a fact the compaction removed is recalled again once a fresh view no longer shows it, a compaction that fails no longer switches the gate off for the session, a late sync keeps its own turn, and a fact_store history result counts as the fact being visible; with the gate off nothing changes. Version 0.26.2: with the task-outcome journal on (off by default), a prefetch that only refreshes facts the session already holds records no new attempt and carries no Memory attempt line, so a repeated block adds nothing new to the context. Version 0.26.3: with the journal and the presence gate on, a delivery whose attempt could not be written after a compaction no longer stops that fact from recording attempts later. Version 0.26.4 fixes the presence gate after a second independent review: two late syncs in a row each keep their own turn, a quiet session that compacted leaves no lasting state, and a refresh no longer keeps token-budget room for an attempt line it does not carry.",
+   "maintainer": "itpartypattaya",
+   "tier": "community",
+   "category": "memory",
+   "requires_hermes": ">=0.21.5",
+   "docs_url": "https://github.com/itpartypattaya/hermes-plugin-holographic/blob/6fe7d424cdc1b197e4a1f2dc1542e9e3869bf4f0/README.md",
+   "known_issues": [
+    "Word forms are matched by stems, not a dictionary: an irregular form can miss (ponies / pony). A synonym is found only if the fact's keywords name it, unless the optional online search by meaning is on; facts stored without keywords (older ones, auto_extract) need `enrich`.",
+    "Arabic, Indic scripts, Indonesian, German, Turkish, Polish and Dutch are matched by scanning the facts' text: the first such search after start analyses every fact (about 1-1.5 s at 5,000 facts, 4-6 s at 20,000); stores without such facts never scan. The bundled dictionaries load on the first word of their language (Chinese about 0.2 s and 30 MB).",
+    "forget cleans the database file only: Hermes session history, `hermes backup` archives and copies other tools made are not rewritten (tools can read the `forgotten` table and clean their own copies by fact id).",
+    "rerank: on is experimental and does not raise hits. On the maintainer's held-out set it lost one target in 126 questions with embeddings off and two with them on, on questions where several facts of one kind compete, against about 40 % fewer non-target facts. Each turn waits for one rerank call: on 4 CPU threads about 120 ms median with jina-reranker-v2-base-multilingual and 340 ms with bge-reranker-v2-m3, capped by rerank_timeout (3 s, lower with embeddings on so that both fit the core's 8 s prefetch budget). The suggested CPU model, jina-reranker-v2-base-multilingual, is CC-BY-NC-4.0 (non-commercial use only); bge-reranker-v2-m3 is Apache-2.0. The plugin ships no model. It sends no key, so a cloud rerank API that requires one (Cohere, Jina) refuses every call; it is tested with llama-server.",
+    "After the first merge the file uses history schema 2. Downgrading to a writer below 0.19.0 disables memory for that file until 0.19.0+ is restored or a pre-merge backup is used; manually lowering the schema mark is unsafe. There is no automatic unmerge. In this first release merged copies keep separate historical ids and confirmations are not pooled into the retained fact's origin counts.",
+    "memory_map.py (experimental, off unless run) writes the stored facts' texts to its output: a page or file made from it must stay behind a password and is not reached by a later forget. Its JSON format may change without a deprecation period. prefetch_clause_coverage (experimental, off) rescued no facts on one live install's history (5,081 messages) and is kept off there."
+   ],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "identity",
+   "repo": "https://github.com/indigokarasu/hermes-identity-plugin",
+   "sha": "8f51e0ed7c69992b8494389fb93ec0e02bcca734",
+   "version": "1.0.1",
+   "description": "View and edit the identity files (SOUL.md, MEMORY.md, USER.md, AGENT.md/HERMES.md) from chat, switch the active profile, and see per-line usage with colour-coded staleness timestamps. Adds six tools, /identity, /identity-switch and /identity-dashboard commands, and a utilization dashboard pane. Disclosure \u2014 reads and writes the identity files and a line-utilization record inside the selected profile directory under HERMES_HOME, and can change which profile is active; it performs no network I/O and holds no credentials. Disclosure \u2014 the model-callable identity_edit tool rewrites SOUL.md/MEMORY.md/USER.md/AGENT.md and identity_switch_profile writes HERMES_HOME/active_profile.",
+   "maintainer": "indigokarasu",
+   "tier": "community",
+   "category": "tools",
+   "docs_url": "https://github.com/indigokarasu/hermes-identity-plugin#readme",
+   "readme": true,
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [
+     "identity_view",
+     "identity_edit",
+     "identity_switch_profile",
+     "identity_list_profiles",
+     "identity_dashboard",
+     "identity_reset_usage"
+    ],
+    "provides_hooks": [
+     "post_llm_call",
+     "post_tool_call"
+    ],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "memory-rewind",
+   "repo": "https://github.com/AhmetArif0/hermes-memory-rewind",
+   "sha": "354927184de03cdc4a9e9e48ddb2865c36368b1f",
+   "subdir": "memory-rewind",
+   "description": "Automatic version history for the built-in memory (MEMORY.md, USER.md), SOUL.md and skills/ (including curator-archived skills): browse, diff and restore any past version with `hermes memory-rewind`, or view it from any chat with the read-only `/memory-history`. Works alongside the built-in memory; not a memory provider. Disclosure \u2014 runs the local git binary (isolated from the user's git config, hooks and signing) to keep a bare repository in $HERMES_HOME/plugin-data/memory-rewind/; reads only the tracked files (never .env, auth.json, databases or skills/.hub/); rewrites tracked files only when the user runs `restore`; no network.",
+   "maintainer": "AhmetArif0",
+   "tier": "community",
+   "category": "general",
+   "requires_hermes": ">=0.21.5",
+   "docs_url": "https://github.com/AhmetArif0/hermes-memory-rewind",
+   "version": "1.3.2",
+   "image": "https://raw.githubusercontent.com/AhmetArif0/hermes-memory-rewind/e5b139b1059a47df34002e76a7bfd84bc60d9f35/docs/card.png",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [
+     "on_session_start",
+     "pre_llm_call",
+     "post_tool_call",
+     "on_session_end"
+    ],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "memory-shaper",
+   "title": "Dynamic Memory (keyword index)",
+   "repo": "https://github.com/ockentap/hermes-dynamic-memory",
+   "sha": "5adc0853e364cb3965d389e5486e6a001ffbba87",
+   "subdir": "plugin/memory-shaper",
+   "description": "Keyword-index memory for Hermes: a small resident index of 'keyword,keyword -> file.md' routing lines stays in the system prompt while verbose topic files stay on disk and are read only when the conversation touches their keywords. Retrieval is done by the model reading a literal index \u2014 no embeddings, no vector store, no retrieval service. Disclosure \u2014 a pre_tool_call hook and a tool_execution middleware refuse a non-memory tool's write to the memory index across the recognised write vectors (write_file, patch, shell redirects, tee, sed -i; best-effort against arbitrary shell indirection) and refuse malformed index lines with a fix message rather than fixing them silently (including the keyword count: an entry outside the documented 5-20 keywords is refused, and the ASCII arrow is refused on every code path), while read-only commands and reads through a pipe always pass so the agent can audit the file it maintains; the same guard refuses any memory-tool remove, replace or patch whose old_text lands inside the index header, because on the stock store the whole preamble is a single \u00a7-joined entry and such an edit would rewrite or delete every header line at once; a documented escape hatch lets a scripted rewrite proceed when the sentinel file $HERMES_HOME/state/.memory_shaper_rewrite_approved exists or MEMORY_SHAPER_ALLOW_REWRITE=1 is set. Beyond $HERMES_HOME/memories/, the guard reads one thing: when a shell command invokes python3 on a script file, it opens that script (and the execute_code payload is already in args) to check whether the code would write the index; no file content is retained or sent anywhere. The repo also ships an optional core patch (scripts/patches/0001-flat-memory-separator.patch, changes tools/memory_tool_store.py) that the plugin does not need and never applies; a user who applies it by hand must re-apply it after every Hermes update. No network calls, no subprocesses, nothing spawned in the background.",
+   "maintainer": "ockentap",
+   "tier": "community",
+   "category": "tools",
+   "version": "1.5.1",
+   "requires_hermes": ">=0.22.2",
+   "docs_url": "https://github.com/ockentap/hermes-dynamic-memory#readme",
+   "readme": true,
+   "platforms": [
+    "linux",
+    "macos"
+   ],
+   "known_issues": [
+    "The routing rule from skill/ (or an equivalent line in your personality file) is part of the setup: stock Hermes injects the index with no instructions, so without the rule the agent still finds the right file, but by brute-force filesystem search which does not scale."
+   ],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [
+     "pre_tool_call"
+    ],
+    "provides_middleware": [
+     "tool_execution"
+    ],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "memory-shield",
+   "title": "Memory Shield",
+   "repo": "https://github.com/churnast/hermes-memory-shield",
+   "sha": "347ab18408da52937f7e808a6e88a52b74184225",
+   "description": "Keeps your agent from rewriting or wiping what it remembers about you: by default the agent may add facts to the owner profile (USER.md) wherever it may write and may correct one only when the owner asks in a direct chat, the CLI or a trusted chat, and nobody may delete one; the agent's notes (MEMORY.md) cannot be deleted; group chats are read-only except for the people and owner-only chats you trust, and once trusted_users is set a direct chat with anyone not listed is read-only too; Hermes' unattended background review may not touch the owner profile. Block, ask through Hermes' approval prompt or just log, and undo edits and deletions from snapshots. Disclosure \u2014 no network calls, credentials, shell commands or background processes. One pre_tool_call hook reads the turn's platform, chat type, chat id and name, sender id and name and the cron flag (gateway.session_context) and whether the run is Hermes' unattended review (tools.skill_provenance.is_unattended_review), checks memory tool calls, and checks write_file, patch, terminal and execute_code calls only for a write into, or a removal of, USER.md, MEMORY.md or the memory folder (reading a memory file or copying it elsewhere passes in calls up to 16 KB; a longer call that names them is refused); mode approve asks through Hermes' approval gate in the owner's direct chats and the CLI and blocks in shared chats, cron and direct chats with people not in trusted_users. Writes plugin-data/memory-shield/audit.jsonl (the last 500 refused or flagged writes: time, chat, sender and a 160-character excerpt) and snapshots/ (full copies of USER.md and MEMORY.md taken right before an allowed edit or deletion, 20 per file by default). Reads the memory files and holds the memory store's lock files while it reads or writes them (not on Windows); /memory-shield restore overwrites one memory file. /memory-shield log and restore answer only in direct chats, the CLI and trusted_chats, and once trusted_users is set only the people listed there (a session without a user id, such as the CLI, counts as the owner); /memory-shield, snapshots and whoami answer in any chat with settings, counts, times, sizes and the caller's own id, name and chat key.",
+   "maintainer": "churnast",
+   "tier": "community",
+   "category": "general",
+   "requires_hermes": ">=0.21.5",
+   "docs_url": "https://github.com/churnast/hermes-memory-shield#readme",
+   "version": "1.1.2",
+   "image": "https://raw.githubusercontent.com/churnast/hermes-memory-shield/347ab18408da52937f7e808a6e88a52b74184225/docs/card.png",
+   "screenshots": [
+    "https://raw.githubusercontent.com/churnast/hermes-memory-shield/347ab18408da52937f7e808a6e88a52b74184225/docs/screenshots/01-group-stranger.png",
+    "https://raw.githubusercontent.com/churnast/hermes-memory-shield/347ab18408da52937f7e808a6e88a52b74184225/docs/screenshots/02-forget-everything.png",
+    "https://raw.githubusercontent.com/churnast/hermes-memory-shield/347ab18408da52937f7e808a6e88a52b74184225/docs/screenshots/04-undo.png"
+   ],
+   "platforms": [
+    "linux",
+    "macos"
+   ],
+   "known_issues": [
+    "Needs plugins.isolation: in_process (the default). Under plugins.isolation: host the plugin cannot see the current chat, sender or Hermes' review marker, so it judges every call like a direct chat and the group chat and background review protection does not apply.",
+    "Covers Hermes' built-in memory tool (USER.md, MEMORY.md) only, not the tools of memory provider plugins such as Honcho or Mem0.",
+    "Without trusted_users every direct chat counts as the owner: whoever can message the agent directly may add facts to the owner profile and correct them (not delete them) until the owner's id is listed.",
+    "Spotting USER.md and MEMORY.md edits made through terminal and execute_code is best effort: a path built some other way, or a command run from a script file, can get through.",
+    "terminal and execute_code calls are read up to 16,384 characters. A longer call that contains the word memories, USER.md or MEMORY.md (any case, quotes ignored) is refused even when it only reads them; a longer call that contains none of them passes without being read."
+   ],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [
+     "pre_tool_call"
+    ],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "provenance-gate",
+   "title": "Provenance Gate",
+   "repo": "https://github.com/simin-yuan/hermes-provenance-gate",
+   "sha": "d8ded75deef198694639d8653c1834a26f3b0372",
+   "version": "0.1.3",
+   "description": "Flags memory and skill_manage writes that state a user decision (\"the user decided ...\", \"\u7528\u6237\u51b3\u5b9a ...\") without the user's own words: each such sentence needs a quote that appears verbatim in text the user typed in this session, shares key words with the decision and does not drop a negation. A patch is checked by the text it produces. Observe mode (the default) records flagged writes and `hermes provenance-gate report` lists them; block mode refuses them and tells the model how to fix the write. Measured on an independent blind set of 133 lines: precision 1.000, recall 0.694. Disclosure \u2014 two hooks (pre_llm_call, pre_tool_call); keeps a local copy of the text the user types, with its sender_id and session link, and an evidence log of checked claims under plugin-data/provenance-gate (30-day default retention, `hermes provenance-gate purge`); reads MEMORY.md, USER.md and skill files to reproduce what a patch produces; no network, no credentials, never asks for approval.",
+   "maintainer": "simin-yuan",
+   "tier": "community",
+   "category": "general",
+   "requires_hermes": ">=0.22.2",
+   "docs_url": "https://github.com/simin-yuan/hermes-provenance-gate#readme",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [
+     "pre_llm_call",
+     "pre_tool_call"
+    ],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "supermemory",
+   "repo": "https://github.com/supermemoryai/hermes-supermemory",
+   "sha": "91405dd00fdf2a0b3515b25c25557598f6793299",
+   "version": "1.0.1",
+   "description": "Supermemory semantic long-term memory provider \u2014 profile recall, semantic search, explicit memory tools, and per-turn conversation capture. Maintained by Supermemory; the same provider that shipped in-tree.",
+   "maintainer": "supermemoryai",
+   "tier": "community",
+   "category": "memory",
+   "docs_url": "https://github.com/supermemoryai/hermes-supermemory#readme",
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": [
+     "SUPERMEMORY_API_KEY"
+    ]
+   }
+  },
+  {
+   "name": "brave-search",
+   "repo": "https://github.com/rabilrbl/hermes-brave-search-plugin",
+   "sha": "4134cbef910c14c63e6b284b0820b30f3811ab47",
+   "description": "Brave Search API tools for live web search inside Hermes",
+   "maintainer": "rabilrbl",
+   "tier": "community",
+   "category": "web",
+   "docs_url": "https://github.com/rabilrbl/hermes-brave-search-plugin#readme",
+   "capabilities": {
+    "provides_tools": [
+     "brave_web_search"
+    ],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": [
+     "name"
+    ]
+   }
+  },
+  {
+   "name": "elevenlabs-music",
+   "repo": "https://github.com/NousResearch/hermes-official-plugins",
+   "sha": "1e326ddd28ae261821d7714d106fe114999a0bba",
+   "subdir": "elevenlabs-music",
+   "title": "ElevenLabs Music",
+   "description": "ElevenLabs Music for Hermes: describe a song or paste your lyrics and Hermes writes, generates and sends the track, 3 seconds to 10 minutes, vocals or instrumental. It can redo one section, extend or loop a song, split it into stems (vocals, drums, bass, guitar, piano, other) and score a video. Long songs finish in the background and arrive in the chat. Bundles a music skill (prompting, composition plans, edit recipes) and, in Hermes Desktop, an inline music card with synced lyrics, format downloads and a music library tab. Model, audio format and endpoint are plugin settings. Disclosure: uses your ElevenLabs API key (ELEVENLABS_API_KEY, the same key as Hermes's ElevenLabs voice; needs a paid ElevenLabs plan, and a restricted key needs the Music permission); compose, plan, upload, stems and video calls are paid generations billed to your ElevenLabs account by length (drafting a plan and listing finetunes are free). Only the prompt or plan, its parameters and any file you name are sent, to api.elevenlabs.io (or the data-residency endpoint you set); with store_for_editing on, ElevenLabs keeps generated songs so they can be edited later. Files are written to cache/generated/audio under the Hermes home and never overwritten. One Python dependency (httpx, already part of Hermes).",
+   "maintainer": "NousResearch",
+   "tier": "official",
+   "category": "tools",
+   "requires_hermes": ">=0.22.0",
+   "version": "1.0.0",
+   "image": "https://raw.githubusercontent.com/NousResearch/hermes-official-plugins/1e326ddd28ae261821d7714d106fe114999a0bba/assets/elevenlabs-music.jpg",
+   "docs_url": "https://github.com/NousResearch/hermes-official-plugins/tree/main/elevenlabs-music",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [
+     "elevenlabs_music_compose",
+     "elevenlabs_music_compose_plan",
+     "elevenlabs_music_draft_plan",
+     "elevenlabs_music_upload",
+     "elevenlabs_music_stems",
+     "elevenlabs_music_from_video",
+     "elevenlabs_music_finetunes",
+     "elevenlabs_music_job"
+    ],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": [
+     "ELEVENLABS_API_KEY"
+    ]
+   }
+  },
+  {
+   "name": "gmail",
+   "repo": "https://github.com/guberm/hermes-gmail-desktop-plugin",
+   "sha": "c8cd0c2d140561a1dffb7432c6d02b63b2374888",
+   "subdir": "plugins/gmail",
+   "title": "Gmail",
+   "description": "Hermes Desktop Gmail mailbox UI for search, reading, and thread inspection, with preview-confirmed send, reply, archive, trash, and label changes. Uses the active profile's existing Google Workspace OAuth setup; email is sensitive external content. Gmail actions and data access require user review and configuration. Disclosure \u2014 reads the active profile's Hermes Google Workspace token (google_token.json, refreshed in memory only) and calls the Gmail API; opening an unread message marks it read, other send/trash/label changes go through a confirm step (one setting can skip every review dialog, and then the prepare ticket, account/profile binding, exact snapshot validation and readback verification still run); remote email images load only after the user allows them. Attachment metadata listing and bounded read-only attachment download (25 MB cap) are profile/account-scoped.",
+   "maintainer": "guberm",
+   "tier": "community",
+   "category": "desktop",
+   "docs_url": "https://github.com/guberm/hermes-gmail-desktop-plugin#readme",
+   "version": "1.0.20",
+   "readme": false,
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "inbox",
+   "repo": "https://github.com/NousResearch/hermes-labs-plugins",
+   "sha": "62dbc160fab57f893a9eaace79c16c00518c4eca",
+   "subdir": "inbox",
+   "description": "hermes inbox: one read-only view of everything in flight for the active profile: failed or paused cron jobs, stalled or dropped delegations, orphaned background processes, blocked kanban tasks, running work, undelivered delegation results, upcoming cron runs and open chat sessions, with --json for scripts. A Hermes Labs plugin: built by Nous Research, not supported. Disclosure \u2014 reads processes.json, cron/jobs.json, runtime/active_sessions.json and state.db (SQLite read-only) in the profile's home, plus the shared kanban board's kanban.db (read-only); it never writes, repairs or prunes them, adds no model tools or hooks, and sends nothing anywhere.",
+   "maintainer": "NousResearch",
+   "tier": "community",
+   "category": "general",
+   "docs_url": "https://github.com/NousResearch/hermes-labs-plugins/tree/main/inbox",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  },
+  {
+   "name": "spotify-desktop",
+   "repo": "https://github.com/cruzlxyz/hermes-spotify-desktop",
+   "sha": "9b564d53c219f9962404dee5f84d3bbb47683897",
+   "description": "Spotify Connect remote for Hermes Desktop \u2014 status-bar mini player (now playing, transport, volume, devices, search, playlists, queue) reusing the Hermes Spotify login (Spotify Premium required for playback control). Unified agent+desktop package: Electron status-bar player plus a dashboard-API backend (desktop-focused, no web UI). No agent tools; config via plugins.entries.spotify-desktop.settings (poll intervals).",
+   "maintainer": "cruzlxyz",
+   "tier": "community",
+   "version": "0.1.2",
+   "category": "desktop",
+   "docs_url": "https://github.com/cruzlxyz/hermes-spotify-desktop",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   },
+   "known_issues": [
+    "On Hermes releases where Spotify moved to the `spotify` plugin, the player needs spotify-desktop with cruzlxyz/hermes-spotify-desktop#2 plus `hermes plugins install spotify` (login: `hermes spotify login`); this pin predates that change."
+   ]
+  },
+  {
+   "name": "spotify",
+   "repo": "https://github.com/NousResearch/hermes-official-plugins",
+   "sha": "4d492b1dc5326af3e38bb2cf3e4b9ad6d65f0072",
+   "subdir": "spotify",
+   "description": "Spotify for Hermes: seven tools (playback, devices, queue, search, playlists, albums, library) over the Spotify Web API, plus `hermes spotify login|status|logout` (loopback PKCE with your own Spotify developer app; Premium needed for playback control). Formerly built into Hermes core; existing users are migrated automatically.",
+   "maintainer": "NousResearch",
+   "tier": "official",
+   "category": "tools",
+   "requires_hermes": ">=0.21.6",
+   "version": "2.1.0",
+   "image": "https://raw.githubusercontent.com/NousResearch/hermes-official-plugins/4d492b1dc5326af3e38bb2cf3e4b9ad6d65f0072/assets/spotify.jpg",
+   "docs_url": "https://github.com/NousResearch/hermes-official-plugins/tree/main/spotify",
+   "platforms": [],
+   "capabilities": {
+    "provides_tools": [
+     "spotify_playback",
+     "spotify_devices",
+     "spotify_queue",
+     "spotify_search",
+     "spotify_playlists",
+     "spotify_albums",
+     "spotify_library"
+    ],
+    "provides_hooks": [],
+    "provides_middleware": [],
+    "requires_env": []
+   }
+  }
+ ],
+ "removed": [
+  {
+   "name": "or-picker",
+   "reason": "Folded into openrouter-picker. Installing the provider alone left the picker broken. Install openrouter-picker.",
+   "date": "2026-09-28"
+  }
+ ]
+}
