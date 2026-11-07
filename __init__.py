@@ -240,6 +240,17 @@ def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:
             "changes": new["changes"], "since": new["since"], "text": text}
 
 
+def run_overview(ctx) -> dict[str, Any]:
+    """Default /scout: picks first, then heads-ups and clashes for what you have installed."""
+    picked = run_picks(ctx)
+    checked = run_conflicts(ctx)
+    profile = {"sessions": picked["profile"]["sessions"], "window_days": picked["profile"]["window_days"]}
+    loaded = _load_catalog()
+    text = report.overview_text(picked["picks"], profile, checked["findings"],
+                                checked["enabled_plugins"]) + _stale_note(loaded)
+    return {"picks": picked["picks"], "findings": checked["findings"], "text": text}
+
+
 def run_dismiss(ctx, name: str) -> dict[str, Any]:
     name = (name or "").strip()
     if not name:
@@ -250,9 +261,10 @@ def run_dismiss(ctx, name: str) -> dict[str, Any]:
 
 
 HELP = (
-    "/scout            check your plugins for conflicts and overlaps\n"
-    "/scout ai         conflicts check, with an AI second opinion on likely conflicts\n"
+    "/scout            overview: plugins that fit you, heads-ups, and clashes\n"
     "/scout picks      plugins that fit how you use Hermes (add 'ai' for a smarter shortlist)\n"
+    "/scout check      full check of your plugins: clashes, settings, updates, known issues\n"
+    "/scout check ai   same, with an AI second opinion on likely clashes\n"
     "/scout dismiss X  stop suggesting plugin X\n"
     "/scout week       this week's note: only what matters to you\n"
     "/scout new        what changed in the catalog since you last looked\n"
@@ -312,7 +324,9 @@ def register(ctx):
             return _safe(lambda: run_whats_new(ctx))["text"]
         if arg == "seen":
             return _safe(lambda: run_whats_new(ctx, mark_seen=True))["text"]
-        return _safe(lambda: run_conflicts(ctx, ai_check=(arg == "ai")))["text"]
+        if arg.startswith("check") or arg == "ai":
+            return _safe(lambda: run_conflicts(ctx, ai_check=arg.endswith("ai")))["text"]
+        return _safe(lambda: run_overview(ctx))["text"]
 
     ctx.register_tool(name="scout_conflicts", toolset=PLUGIN,
                       schema=CONFLICTS_SCHEMA, handler=tool_conflicts)
@@ -325,7 +339,7 @@ def register(ctx):
     ctx.register_tool(name="scout_dismiss", toolset=PLUGIN,
                       schema=DISMISS_SCHEMA, handler=tool_dismiss)
     ctx.register_command("scout", handler=command,
-                         description="Plugin Scout: plugin conflicts, picks and your weekly note")
+                         description="Plugin Scout: plugins that fit you, heads-ups and clashes")
     ctx.register_automation_blueprint(
         "weekly",
         title="Weekly plugin scout",

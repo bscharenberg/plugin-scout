@@ -1,12 +1,13 @@
 # Plugin Scout
 
-New Hermes plugins land every week, faster than anyone can read the catalog. And nothing tells you when two plugins you installed are fighting.
+New Hermes plugins land every week, faster than anyone can read the catalog.
 
-Plugin Scout goes ahead of you. It reads how you actually use Hermes and tells you three things:
+Plugin Scout is like the veteran coworker who knows your job, notices how you work, and leans over to say "there's a free tool for that," or "heads up, that one needs a setting you don't have." It reads how you actually use Hermes, reads the whole catalog, and tells you what fits:
 
-1. **Which plugins are fighting.** Two plugins stepping in on the same tool, duplicate tool names, several memory plugins at once, a plugin pulled from the catalog, an update waiting, or a plugin whose own warnings say it will not fully work with your settings.
-2. **Which plugins fit you.** Picks based on the tools you use and the topics you ask about, each with the evidence behind it.
-3. **What is new that matters to you.** A weekly note that stays quiet unless something affects you.
+1. **Plugins that fit you.** Picks based on the tools you use and the topics you ask about, each with the evidence behind it.
+2. **Heads-ups.** A plugin whose own warnings apply to your settings, an update waiting, known issues, or a plugin pulled from the catalog (that one always comes first).
+3. **Clashes.** If you stack plugins that step in on the same tool, such as two guards on `terminal` or `memory`, it says so before they trip over each other.
+4. **What is new for you.** A weekly note that stays quiet unless something matters to you.
 
 It recommends. It never installs, enables or changes anything. Every suggestion ends with the command for you to run yourself.
 
@@ -21,33 +22,22 @@ hermes plugins enable plugin-scout
 
 | Command | What it does |
 |---|---|
-| `/scout` | Check your enabled plugins for conflicts and overlaps |
-| `/scout ai` | Same, with an AI second opinion on likely conflicts |
+| `/scout` | Overview: plugins that fit you, heads-ups, then any clashes |
 | `/scout picks` | Plugins that fit how you use Hermes |
 | `/scout picks ai` | A shorter, smarter shortlist with a reason for each |
+| `/scout check` | Full check of your plugins: clashes, settings, updates, known issues |
+| `/scout check ai` | Same, with an AI second opinion on likely clashes |
 | `/scout dismiss <name>` | Stop suggesting a plugin |
 | `/scout week` | This week's note: only what matters to you |
 | `/scout new` | Everything that changed in the catalog since you last looked |
 | `/scout seen` | Mark catalog changes as seen |
 | `/scout refresh` | Download the catalog again now |
 
-You can also just ask Hermes ("do my plugins conflict?", "what plugins should I try?"). The agent has five tools: `scout_conflicts`, `scout_picks`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
+You can also just ask Hermes ("what plugins should I try?", "do my plugins conflict?"). The agent has five tools: `scout_conflicts`, `scout_picks`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
 
 **Weekly note.** Open `/blueprint` and pick **Weekly plugin scout** to get it every Monday at a time you choose, in the chat it came from. Nothing is scheduled until you set it up.
 
 ### Example
-
-```
-Plugin Scout: 3 enabled plugin(s) checked. 1 to look at.
-
-[CAUTION] Memory Shield and Provenance Gate both step in on `memory`
-  - Both register `pre_tool_call`.
-  - Both descriptions say they act on `memory`.
-  - When both are on, either can block or change the call before the other sees it.
-[KNOWN ISSUE] memory-shield: 5 known issues
-  - Needs plugins.isolation: in_process (the default). Under plugins.isolation: host the plugin cannot see the current chat, sender or Hermes' review marker, so...
-  - 4 more: hermes plugins info memory-shield
-```
 
 ```
 Cloudflare Web Search
@@ -62,13 +52,27 @@ Spotify [official]
   Install: hermes plugins install spotify   Not for you: /scout dismiss spotify
 ```
 
+```
+Plugin Scout: 3 enabled plugin(s) checked. 1 to look at.
+
+[CAUTION] Memory Shield and Provenance Gate both step in on `memory`
+  - Both register `pre_tool_call`.
+  - Both descriptions say they act on `memory`.
+  - When both are on, either can block or change the call before the other sees it.
+[KNOWN ISSUE] memory-shield: 5 known issues
+  - Needs plugins.isolation: in_process (the default). Under plugins.isolation: host the plugin cannot see the current chat, sender or Hermes' review marker, so...
+  - 4 more: hermes plugins info memory-shield
+```
+
+The last one is from `/scout check`, the full plugin check.
+
 ## How it decides
 
-**Conflicts** come from what each plugin declares (its tools, hooks and middleware) plus its catalog description. Many plugins use the same hooks, so a shared hook alone is not a conflict. A caution needs both a shared tool-level hook and the same tool named in both descriptions. These are labelled "likely", not proven. `/scout ai` asks your model for a second opinion and downgrades the ones it judges harmless.
+**Picks** come from counts, not from reading your conversations with a model. On your machine, Plugin Scout counts which tools you used and matches about 20 everyday topics (calendar, email, music, coding and so on) against fixed keyword lists in your own messages over the last 30 days. Catalog plugins are scored against those counts. Official and verified plugins get a small boost, plugins with known issues a small penalty.
 
 **Settings** come from each plugin's own known issues. Many name a Hermes setting ("Needs plugins.isolation: in_process", "Set web.cache_enabled: false"). Plugin Scout reads those settings in your config and speaks up only when the warning applies to you, on installed plugins and on picks alike. Tested against every plugin in the catalog on a typical setup, it flagged only the one warning that truly applied.
 
-**Picks** come from counts, not from reading your conversations with a model. On your machine, Plugin Scout counts which tools you used and matches about 20 everyday topics (calendar, email, music, coding and so on) against fixed keyword lists in your own messages over the last 30 days. Catalog plugins are scored against those counts. Official and verified plugins get a small boost, plugins with known issues a small penalty.
+**Clashes** are uncommon: only a few dozen catalog plugins step in on Hermes's built-in tools, so this mostly matters once you stack guard or safety plugins, most often on `terminal` and `write_file`. They come from what each plugin declares (its tools, hooks and middleware) plus its catalog description. Many plugins use the same hooks, so a shared hook alone is not a conflict. A caution needs both a shared tool-level hook and the same tool named in both descriptions. These are labelled "likely", not proven. `/scout ai` asks your model for a second opinion and downgrades the ones it judges harmless.
 
 ## Privacy and what it touches
 

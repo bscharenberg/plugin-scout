@@ -33,6 +33,56 @@ def conflicts_text(findings: list[dict[str, Any]], plugin_count: int, limit: int
     return "\n".join(lines)
 
 
+HEADS_UP = ("settings", "update", "known_issue")
+CLASHES = ("conflict", "likely")
+
+
+def _pick_lines(p: dict[str, Any]) -> list[str]:
+    tier = f" [{p['tier']}]" if p.get("tier") in ("official", "verified") else ""
+    lines = [f"{p['title']}{tier}"]
+    if p.get("why"):
+        lines.append(f"  {p['why']}")
+    lines.append(f"  Why: {p['evidence']}")
+    if p.get("heads_up"):
+        lines.append(f"  Heads up: {p['heads_up']}")
+    lines.append(f"  Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
+    return lines
+
+
+def _finding_lines(f: dict[str, Any], evidence: int = 2) -> list[str]:
+    return [f"[{_LABEL[f['kind']]}] {f['title']}"] + [f"  - {e}" for e in f["evidence"][:evidence]]
+
+
+def overview_text(picks: list[dict[str, Any]], profile: dict[str, Any],
+                  findings: list[dict[str, Any]], plugin_count: int) -> str:
+    """The default /scout view: what fits you first, then heads-ups, then clashes."""
+    lines = ["Plugin Scout"]
+    for f in (f for f in findings if f["kind"] == "pulled"):  # safety first, always
+        lines += [""] + _finding_lines(f)
+    lines += ["", "For you:"]
+    if not profile.get("sessions"):
+        lines.append("  Not enough history yet. Use Hermes for a few days; picks follow what you actually do.")
+    elif not picks:
+        lines.append("  Nothing in the catalog stands out for what you do yet.")
+    for p in picks:
+        lines += ["  " + line for line in _pick_lines(p)]
+    heads = [f for f in findings if f["kind"] in HEADS_UP]
+    clashes = [f for f in findings if f["kind"] in CLASHES]
+    if heads:
+        lines += ["", "Heads-ups on your plugins:"]
+        for f in heads[:4]:
+            lines += ["  " + line for line in _finding_lines(f)]
+    if clashes:
+        lines += ["", "Plugins that may clash:"]
+        for f in clashes[:3]:
+            lines += ["  " + line for line in _finding_lines(f, evidence=3)]
+    if not heads and not clashes:
+        lines += ["", "No other plugins enabled yet, so nothing to check." if plugin_count == 0 else
+                  f"Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear."]
+    lines += ["", "More: /scout check (full plugin check), /scout picks, /scout week, /scout help"]
+    return "\n".join(lines)
+
+
 def picks_text(picks: list[dict[str, Any]], profile: dict[str, Any]) -> str:
     if not profile.get("sessions"):
         return ("Plugin Scout: not enough history yet. Use Hermes for a few days and ask again; "
@@ -44,14 +94,7 @@ def picks_text(picks: list[dict[str, Any]], profile: dict[str, Any]) -> str:
     lines = [f"Plugin Scout: {len(picks)} pick{'' if len(picks) == 1 else 's'} from "
              f"{profile['sessions']} session{s} in the last {profile['window_days']} days."]
     for p in picks:
-        tier = f" [{p['tier']}]" if p.get("tier") in ("official", "verified") else ""
-        lines.append(f"\n{p['title']}{tier}")
-        if p.get("why"):
-            lines.append(f"  {p['why']}")
-        lines.append(f"  Why: {p['evidence']}")
-        if p.get("heads_up"):
-            lines.append(f"  Heads up: {p['heads_up']}")
-        lines.append(f"  Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
+        lines += [""] + _pick_lines(p)
     return "\n".join(lines)
 
 
@@ -81,13 +124,21 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
             return f"Plugin Scout, this week: all clear. Nothing new fits how you use Hermes.\n{rest}"
         return f"Plugin Scout, this week: all clear. No catalog changes since {since}."
     lines = ["Plugin Scout, this week:"]
-    for f in to_act[:5]:
+
+    def add(f):
         lines.append(f"[{_LABEL[f['kind']]}] {f['title']}")
         if f["evidence"]:
             lines.append(f"  - {f['evidence'][0]}")
+
+    # Order: anything pulled for safety, then what is new for you, then heads-ups, then clashes.
+    for f in [f for f in to_act if f["kind"] == "pulled"]:
+        add(f)
     for p in relevant:
         lines.append(f"[NEW FOR YOU] {p['title']}")
         lines.append(f"  - {p['evidence']}")
         lines.append(f"  - Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
+    rest_kinds = [f for f in to_act if f["kind"] in HEADS_UP] + [f for f in to_act if f["kind"] in CLASHES]
+    for f in rest_kinds[:5]:
+        add(f)
     lines.append(rest)
     return "\n".join(lines)
