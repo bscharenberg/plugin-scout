@@ -78,6 +78,10 @@ class DashboardFilesTests(unittest.TestCase):
         manifest = json.loads((ROOT / "dashboard" / "manifest.json").read_text())
         self.assertEqual(manifest["name"], "plugin-scout")
         self.assertEqual(manifest["api"], "plugin_api.py")
+        self.assertEqual(manifest["css"], "dist/style.css")
+        css = (ROOT / "dashboard" / "dist" / "style.css").read_text()
+        self.assertIn("var(--color-border)", css)  # follows the active Hermes theme
+        self.assertNotIn(".ha-", css)  # its own class names; never restyles other tabs
         page = (ROOT / "dashboard" / "dist" / "index.js").read_text()
         self.assertIn('register("plugin-scout"', page)
         self.assertNotIn("dangerouslySetInnerHTML", page)  # text only, never raw HTML

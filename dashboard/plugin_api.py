@@ -83,7 +83,15 @@ def _overview() -> dict[str, Any]:
         "selected_jobs": [i for i, (_, words) in enumerate(core.usage.JOBS, 1)
                           if words and all(w in (ctx.state.get("interests") or []) for w in words)],
         "interests": [core.usage.label(w) for w in (ctx.state.get("interests") or [])],
+        "catalog_size": _catalog_size(core),
     }
+
+
+def _catalog_size(core) -> int:
+    try:
+        return len(core._load_catalog()["catalog"]["entries"])
+    except Exception:
+        return 0
 
 
 @router.get("/overview")
