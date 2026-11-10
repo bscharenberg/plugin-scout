@@ -117,6 +117,11 @@ class OnboardingTests(unittest.TestCase):
     def test_numbered_answers(self):
         out = self.plugin.run_interests(self.ctx, "1, 10")
         self.assertEqual(out["interests"], ["news", "research", "learning", "security", "privacy"])
+        everything = self.plugin.run_interests(self.ctx, ", ".join(str(n) for n in range(1, 11)))
+        for _, words in usage.JOBS:  # picking all ten keeps every word, security included
+            for w in words:
+                self.assertIn(w, everything["interests"])
+        self.plugin.run_interests(self.ctx, "clear")
         bad = self.plugin.run_interests(self.ctx, "99")
         self.assertIn("pick numbers", bad["text"])
 

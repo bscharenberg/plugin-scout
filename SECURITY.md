@@ -26,7 +26,7 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Model replies (optional `ai` modes) | Your model, possibly steered by catalog text | Untrusted. Only known plugin names accepted, text cleaned and capped. |
 | Session history | You | Private. Counted locally, never sent. |
 | Hermes memory (`USER.md`, `MEMORY.md`) and your skill list | You | Private. Size capped, matched locally against fixed topic lists, never stored or sent. Bundled skills skipped. |
-| Interests you give Scout | You | Cleaned and capped (12 items, 40 characters each), kept in Scout's own plugin state. |
+| Interests you give Scout | You | Cleaned and capped (30 items, 40 characters each), kept in Scout's own plugin state. |
 | `config.yaml` | You | Trusted, read-only. |
 
 **Threats and what stops them**

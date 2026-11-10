@@ -216,7 +216,7 @@ def job_words(numbers: Iterable[int]) -> list[str]:
 
 
 SIGNAL_WEIGHT = {"memory": 2.0, "skill": 2.0, "interest": 3.0}  # things you chose to tell Hermes count more
-MAX_INTERESTS = 12
+MAX_INTERESTS = 30  # enough for every onboarding choice at once (they add up to about 25 words)
 
 
 def _empty_topic() -> dict[str, Any]:
