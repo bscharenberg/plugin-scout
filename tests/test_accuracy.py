@@ -129,6 +129,9 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("[CAUTION] A and B", text)
         self.assertIn("news (", text)
         self.assertIn("/scout interests 1, 6", text)
+        self.assertIn("2. Your likely interests", text)
+        self.assertIn("3. Plugins you may find useful", text)
+        self.assertIn("Nothing is installed unless you run the command yourself.", text)
         self.assertIn("10. Security and privacy", text)
         self.assertIn("2. Writing and social posts", text)
         pick = {"name": "cloudflare-web-search", "title": "Cloudflare Web Search", "confidence": "strong match",
@@ -140,6 +143,7 @@ class OnboardingTests(unittest.TestCase):
         text = report.welcome_text([], 0, usage.build_profile([], now=NOW), [])
         self.assertIn("No other plugins enabled yet", text)
         self.assertIn("the question below fixes it", text)
+        self.assertIn("None stand out yet", text)
 
 
 if __name__ == "__main__":

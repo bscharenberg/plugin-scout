@@ -116,9 +116,9 @@ class TextTests(unittest.TestCase):
                               skills=SKILLS, interests=["kubernetes"])
         text = report.profile_text(p)
         self.assertIn("History: 2 conversations", text)
-        self.assertIn("music (strong match): came up in 2 of 2 conversations; in your memory", text)
+        self.assertIn("music (strong signal): came up in 2 of 2 conversations; in your memory", text)
         self.assertIn("skill ai-news-digest", text)
-        self.assertIn("kubernetes (strong match): you told me", text)
+        self.assertIn("kubernetes (strong signal): you told me", text)
         self.assertNotIn("4321", text)
         self.assertNotIn("play something", text)
 

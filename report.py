@@ -175,7 +175,7 @@ def profile_text(profile: dict[str, Any], limit: int = 8) -> str:
             why.append("skill " + ", ".join(st["skills"][:2]))
         if st.get("interests"):
             why.append("you told me")
-        lines.append(f"  {LABELS.get(topic, topic)} ({usage.confidence(st)}): " + "; ".join(why))
+        lines.append(f"  {LABELS.get(topic, topic)} ({_signal(st)}): " + "; ".join(why))
     lines += ["", "Change it: /scout interests <words> to add, /scout interests clear to reset, "
                   "/scout dismiss <plugin> to skip a pick."]
     return "\n".join(lines)
@@ -227,6 +227,11 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
     return "\n".join(lines)
 
 
+def _signal(stats: dict[str, Any]) -> str:
+    """Interests read as signals about you; 'match' is kept for plugins."""
+    return "strong signal" if usage.confidence(stats) == "strong match" else "early guess"
+
+
 def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dict[str, Any],
                  picks: list[dict[str, Any]]) -> str:
     """First run: value in the first minute, then one question. No waiting a week to be useful."""
@@ -241,16 +246,19 @@ def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dic
         lines.append(f"   Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear.")
     else:
         lines.append("   No other plugins enabled yet, so nothing can clash.")
-    lines += ["", "2. What I already know about you"]
+    lines += ["", "2. Your likely interests"]
     topics = profile.get("topics") or {}
     if topics:
-        lines.append(f"   From {_sources(profile)}:")
+        lines.append(f"   Based on what I can already see ({_sources(profile)}),")
+        lines.append("   these look like what you use Hermes for most:")
         for topic, st in sorted(topics.items(), key=lambda kv: -usage._weight(kv[1]))[:3]:
-            lines.append(f"   - {LABELS.get(topic, topic)} ({usage.confidence(st)})")
-        lines.append("   Full picture: /scout profile")
+            lines.append(f"   - {LABELS.get(topic, topic)} ({_signal(st)})")
+        lines.append("   How I worked this out: /scout profile")
     else:
-        lines.append("   Nothing yet. That is fine; the question below fixes it.")
-    lines += ["", "3. Picks so far"]
+        lines.append("   Nothing to go on yet. That is fine; the question below fixes it.")
+    lines += ["", "3. Plugins you may find useful",
+              "   Available now in the Hermes plugin catalog, picked for how you use Hermes.",
+              "   Nothing is installed unless you run the command yourself."]
     if picks:
         for p in picks:
             conf = f" ({p['confidence']})" if p.get("confidence") else ""
@@ -258,7 +266,7 @@ def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dic
             if p.get("heads_up"):
                 lines.append(f"     Heads up: {p['heads_up']}")
     else:
-        lines.append("   None yet.")
+        lines.append("   None stand out yet. The question below will help.")
     lines += ["", "One question to sharpen this: what do you want Hermes to handle for you?",
               "Reply with numbers, e.g. /scout interests 1, 6"]
     for i, (job, _) in enumerate(usage.JOBS, 1):
