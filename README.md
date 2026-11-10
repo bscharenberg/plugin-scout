@@ -18,6 +18,12 @@ hermes plugins install plugin-scout
 hermes plugins enable plugin-scout
 ```
 
+![Plugin Scout in the Hermes dashboard: setup advisor overview](docs/screenshots/overview.png)
+
+| A pick, with what it does with your data | A clash, explained, with what to do |
+|---|---|
+| ![A pick card: what it does, why it fits, before you install](docs/screenshots/pick-card.png) | ![A clash card: what it means, what each plugin does, what you can do](docs/screenshots/clash.png) |
+
 ## Your first minute
 
 Run `/scout` once. You do not wait a week for it to learn you:

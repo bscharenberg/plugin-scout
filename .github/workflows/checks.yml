@@ -42,7 +42,7 @@ jobs:
           echo "clean"
       - name: No invisible or direction-changing characters in any file
         run: |
-          if git ls-files -z | xargs -0 grep -nP '[\x{200B}-\x{200F}\x{2028}-\x{202E}\x{2060}-\x{206F}\x{FEFF}]'; then
+          if git ls-files -z -- ':!*.png' | xargs -0 grep -nP '[\x{200B}-\x{200F}\x{2028}-\x{202E}\x{2060}-\x{206F}\x{FEFF}]'; then
             echo "Invisible characters found: write them as escape codes instead"; exit 1
           fi
           echo "clean"
