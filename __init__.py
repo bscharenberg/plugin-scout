@@ -13,7 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import catalog, conflicts, installed, report, settings, usage
+from . import catalog, conflicts, installed, report, sanitize, settings, usage
 
 logger = logging.getLogger(__name__)
 PLUGIN = "plugin-scout"
@@ -96,6 +96,17 @@ WEEKLY_SCHEMA = {
             "mark_seen": {"type": "boolean", "description": "Start next week's comparison from now."},
         },
     },
+}
+
+PROFILE_SCHEMA = {
+    "name": "scout_profile",
+    "description": (
+        "Show what Plugin Scout knows about how the user uses Hermes and where each signal came "
+        "from: topic counts from recent sessions, topics in Hermes memory, skills they made, and "
+        "interests they told Scout. Counts and names only. Use when the user asks why Scout "
+        "suggested something or what it knows about them."
+    ),
+    "parameters": {"type": "object", "properties": {}},
 }
 
 MAX_SESSIONS = 200
@@ -201,10 +212,91 @@ def _recent_sessions():
         yield row, db.get_messages(row["id"])
 
 
+MAX_MEMORY_BYTES = 64 * 1024
+MAX_SKILLS = 50
+
+
+def _memory_text() -> str:
+    """Hermes's memory of you (USER.md, MEMORY.md), read-only. Matched locally, never sent."""
+    from hermes_constants import get_hermes_home
+    parts = []
+    for name in ("USER.md", "MEMORY.md"):
+        path = get_hermes_home() / "memories" / name
+        try:
+            if path.is_file() and path.stat().st_size <= MAX_MEMORY_BYTES:
+                parts.append(path.read_text(encoding="utf-8", errors="replace"))
+        except OSError:
+            continue
+    return "\n".join(parts)
+
+
+def _my_skills() -> list[dict[str, str]]:
+    """Skills you made or added. The ones bundled with Hermes say nothing about you, so they are skipped."""
+    from hermes_constants import get_hermes_home
+    try:
+        from tools.skills_tool import find_all_skills
+        manifest = get_hermes_home() / "skills" / ".bundled_manifest"
+        bundled = {line.split(":", 1)[0].strip() for line in
+                   manifest.read_text(encoding="utf-8").splitlines() if line.strip()}
+        found = find_all_skills()
+    except Exception:  # no manifest means we cannot tell yours from built-in ones: use none
+        return []
+    mine = []
+    for skill in found:
+        name = str(skill.get("name") or "")
+        if not name or name in bundled or name.rsplit("/", 1)[-1] in bundled:
+            continue
+        mine.append({"name": sanitize.clean(name, 64),
+                     "description": sanitize.clean(skill.get("description"), 300)})
+    return mine[:MAX_SKILLS]
+
+
+def _profile(ctx) -> dict[str, Any]:
+    """Everything Scout knows about how you use Hermes, as counts. Built on demand, never stored."""
+    profile = usage.build_profile(_recent_sessions())
+    try:
+        memory = _memory_text()
+    except Exception:
+        memory = ""
+    return usage.add_signals(profile, memory_text=memory, skills=_my_skills(),
+                             interests=ctx.state.get("interests") or [])
+
+
+def run_interests(ctx, raw: str) -> dict[str, Any]:
+    text = (raw or "").strip()
+    if text.lower() in ("clear", "none", "reset"):
+        ctx.state.set("interests", [])
+        return {"interests": [], "text": "Plugin Scout: cleared what you told me."}
+    if not text:
+        current = ctx.state.get("interests") or []
+        return {"interests": current, "text": (
+            "Plugin Scout: tell me what you use or care about, separated by commas, e.g.\n"
+            "/scout interests spotify, notion, travel, prompt injection"
+            + (f"\nRight now: {', '.join(current)}" if current else ""))}
+    items = [i for i in (sanitize.clean(x, 40).lower() for x in text.replace(";", ",").split(",")) if i]
+    if len(items) == 1 and " " in items[0] and len(items[0].split()) > 3:
+        items = items[0].split()
+    if items and all(i.isdigit() for i in items):  # answers to the onboarding question
+        items = usage.job_words(int(i) for i in items)
+        if not items:
+            return {"interests": ctx.state.get("interests") or [],
+                    "text": f"Plugin Scout: pick numbers from 1 to {len(usage.JOBS)}, e.g. /scout interests 1, 6"}
+    merged = list(dict.fromkeys((ctx.state.get("interests") or []) + items))[:usage.MAX_INTERESTS]
+    ctx.state.set("interests", merged)
+    return {"interests": merged,
+            "text": f"Plugin Scout: noted. I'll weigh {', '.join(usage.label(w) for w in merged)} in your picks. "
+                    "Try /scout picks."}
+
+
+def run_profile(ctx) -> dict[str, Any]:
+    profile = _profile(ctx)
+    return {"profile": profile, "text": report.profile_text(profile)}
+
+
 def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
     loaded = _load_catalog()
     cat = loaded["catalog"]
-    profile = usage.build_profile(_recent_sessions())
+    profile = _profile(ctx)
     have = {p.get("catalog_name") or p["name"] for p in _installed()}
     dismissed = set(ctx.state.get("dismissed") or [])
     pulled = {r["name"] for r in cat["removed"]}
@@ -212,13 +304,14 @@ def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
     if ai_rank and getattr(ctx, "llm", None) is not None:
         picks = usage.rank_with_llm(profile, pool, catalog.index(cat), _ask_model(ctx), limit=limit)
     else:
-        picks = pool[:limit]
+        stated = {topic for topic, st in profile["topics"].items() if st.get("interests")}
+        picks = usage.diversify(pool, limit, prefer=stated)
     cfg, idx = _config(), catalog.index(cat)
     for p in picks:  # a pick that would not fully work on your setup says so up front
         found = settings.mismatches((idx.get(p["name"]) or {}).get("known_issues") or [], cfg)
         if found:
             p["heads_up"] = found[0]["why"]
-    return {"profile": {k: profile[k] for k in ("sessions", "window_days", "topics")},
+    return {"profile": {k: profile.get(k) for k in ("sessions", "window_days", "topics")},
             "picks": picks, "text": report.picks_text(picks, profile) + _stale_note(loaded)}
 
 
@@ -229,7 +322,7 @@ def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:
     loaded = _load_catalog()
     cat = loaded["catalog"]
     checked = run_conflicts(ctx)
-    profile = usage.build_profile(_recent_sessions())
+    profile = _profile(ctx)
     have = {p.get("catalog_name") or p["name"] for p in _installed()}
     dismissed = set(ctx.state.get("dismissed") or [])
     relevant = usage.relevant_new(profile, new["changes"]["new"], cat["entries"],
@@ -240,11 +333,23 @@ def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:
             "changes": new["changes"], "since": new["since"], "text": text}
 
 
-def run_overview(ctx) -> dict[str, Any]:
-    """Default /scout: picks first, then heads-ups and clashes for what you have installed."""
+def run_welcome(ctx) -> dict[str, Any]:
+    """First run: setup check, what Hermes already knows, picks so far, and one question."""
     picked = run_picks(ctx)
     checked = run_conflicts(ctx)
-    profile = {"sessions": picked["profile"]["sessions"], "window_days": picked["profile"]["window_days"]}
+    ctx.state.set("welcomed", True)
+    text = report.welcome_text(checked["findings"], checked["enabled_plugins"], picked["profile"],
+                               picked["picks"]) + _stale_note(_load_catalog())
+    return {"picks": picked["picks"], "findings": checked["findings"], "text": text}
+
+
+def run_overview(ctx) -> dict[str, Any]:
+    """Default /scout: picks first, then heads-ups and clashes for what you have installed."""
+    if not ctx.state.get("welcomed"):
+        return run_welcome(ctx)
+    picked = run_picks(ctx)
+    checked = run_conflicts(ctx)
+    profile = picked["profile"]
     loaded = _load_catalog()
     text = report.overview_text(picked["picks"], profile, checked["findings"],
                                 checked["enabled_plugins"]) + _stale_note(loaded)
@@ -265,6 +370,9 @@ HELP = (
     "/scout picks      plugins that fit how you use Hermes (add 'ai' for a smarter shortlist)\n"
     "/scout check      full check of your plugins: clashes, settings, updates, known issues\n"
     "/scout check ai   same, with an AI second opinion on likely clashes\n"
+    "/scout start      the welcome again: setup check, what I know, one question\n"
+    "/scout profile    what Scout knows about how you use Hermes, and where it came from\n"
+    "/scout interests  tell Scout what you use or care about (e.g. spotify, notion, security)\n"
     "/scout dismiss X  stop suggesting plugin X\n"
     "/scout week       this week's note: only what matters to you\n"
     "/scout new        what changed in the catalog since you last looked\n"
@@ -296,11 +404,18 @@ def register(ctx):
 
     def tool_picks(args, **kwargs):
         args = args or {}
-        return json.dumps(_safe(lambda: run_picks(ctx, bool(args.get("ai_rank")))), default=str)
+        result = _safe(lambda: run_picks(ctx, bool(args.get("ai_rank"))))
+        result.pop("profile", None)  # picks and their evidence are enough; raw profile stays local
+        return json.dumps(result, default=str)
 
     def tool_weekly(args, **kwargs):
         args = args or {}
         return json.dumps(_safe(lambda: run_weekly(ctx, bool(args.get("mark_seen")))), default=str)
+
+    def tool_profile(args, **kwargs):
+        result = _safe(lambda: run_profile(ctx))
+        result.pop("profile", None)  # the agent gets the summary text, not raw structures
+        return json.dumps(result, default=str)
 
     def tool_dismiss(args, **kwargs):
         return json.dumps(_safe(lambda: run_dismiss(ctx, (args or {}).get("name", ""))), default=str)
@@ -311,6 +426,12 @@ def register(ctx):
             return HELP
         if arg.startswith("picks"):
             return _safe(lambda: run_picks(ctx, ai_rank=arg.endswith(" ai")))["text"]
+        if arg.startswith("interests") or arg.startswith("interest "):
+            return _safe(lambda: run_interests(ctx, (raw_args or "").strip()[len(arg.split()[0]):]))["text"]
+        if arg in ("start", "welcome", "setup"):
+            return _safe(lambda: run_welcome(ctx))["text"]
+        if arg in ("profile", "me", "why"):
+            return _safe(lambda: run_profile(ctx))["text"]
         if arg.startswith("dismiss"):
             return _safe(lambda: run_dismiss(ctx, arg[len("dismiss"):]))["text"]
         if arg == "refresh":
@@ -336,6 +457,8 @@ def register(ctx):
                       schema=PICKS_SCHEMA, handler=tool_picks)
     ctx.register_tool(name="scout_weekly", toolset=PLUGIN,
                       schema=WEEKLY_SCHEMA, handler=tool_weekly)
+    ctx.register_tool(name="scout_profile", toolset=PLUGIN,
+                      schema=PROFILE_SCHEMA, handler=tool_profile)
     ctx.register_tool(name="scout_dismiss", toolset=PLUGIN,
                       schema=DISMISS_SCHEMA, handler=tool_dismiss)
     ctx.register_command("scout", handler=command,

@@ -10,5 +10,6 @@ provides_tools:
   - scout_whats_new
   - scout_picks
   - scout_weekly
+  - scout_profile
   - scout_dismiss
 provides_hooks: []

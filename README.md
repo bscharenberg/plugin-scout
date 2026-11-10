@@ -18,6 +18,17 @@ hermes plugins install plugin-scout
 hermes plugins enable plugin-scout
 ```
 
+## Your first minute
+
+Run `/scout` once. You do not wait a week for it to learn you:
+
+1. **Your setup is checked right away.** Clashes, settings, updates and known issues need no history at all.
+2. **It reads what Hermes already knows:** recent conversations, Hermes's memory of you, and skills you made.
+3. **It shows picks so far,** each labelled *strong match* or *early guess*.
+4. **It asks one question:** what do you want Hermes to handle for you? Answer with numbers, like `/scout interests 1, 10`, and the picks sharpen immediately. The ten choices are jobs people most often give an AI assistant, checked against published usage studies and the plugins in the catalog: research, news and learning; writing and social posts; email and calendar; coding; AI agents and automation; notes, memory and knowledge; images, video, music and voice; shopping, travel and planning; money and finance; security and privacy.
+
+After that, it keeps learning from how you use Hermes. `/scout start` shows the welcome again.
+
 ## Use
 
 | Command | What it does |
@@ -27,13 +38,16 @@ hermes plugins enable plugin-scout
 | `/scout picks ai` | A shorter, smarter shortlist with a reason for each |
 | `/scout check` | Full check of your plugins: clashes, settings, updates, known issues |
 | `/scout check ai` | Same, with an AI second opinion on likely clashes |
+| `/scout start` | The welcome again: setup check, what Scout knows, one question |
+| `/scout profile` | What Scout knows about how you use Hermes, and where each piece came from |
+| `/scout interests <words>` | Tell Scout what you use or care about, e.g. `spotify, notion, prompt injection` (`clear` to reset) |
 | `/scout dismiss <name>` | Stop suggesting a plugin |
 | `/scout week` | This week's note: only what matters to you |
 | `/scout new` | Everything that changed in the catalog since you last looked |
 | `/scout seen` | Mark catalog changes as seen |
 | `/scout refresh` | Download the catalog again now |
 
-You can also just ask Hermes ("what plugins should I try?", "do my plugins conflict?"). The agent has five tools: `scout_conflicts`, `scout_picks`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
+You can also just ask Hermes ("what plugins should I try?", "do my plugins conflict?"). The agent has six tools: `scout_picks`, `scout_profile`, `scout_conflicts`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
 
 **Weekly note.** Open `/blueprint` and pick **Weekly plugin scout** to get it every Monday at a time you choose, in the chat it came from. Nothing is scheduled until you set it up.
 
@@ -68,7 +82,14 @@ The last one is from `/scout check`, the full plugin check.
 
 ## How it decides
 
-**Picks** come from counts, not from reading your conversations with a model. On your machine, Plugin Scout counts which tools you used and matches about 20 everyday topics (calendar, email, music, coding and so on) against fixed keyword lists in your own messages over the last 30 days. Catalog plugins are scored against those counts. Official and verified plugins get a small boost, plugins with known issues a small penalty.
+**Picks** come from counts, not from reading your conversations with a model. On your machine, Plugin Scout looks at four things:
+
+1. **Your recent history:** which tools Hermes used for you, and about 20 everyday topics (calendar, email, music, news, travel, security, AI agents and so on) matched against fixed keyword lists in your own messages over the last 30 days.
+2. **Hermes's memory of you** (`USER.md`, `MEMORY.md`): what you chose to tell Hermes about yourself, matched against the same lists.
+3. **Skills you made or added.** Skills bundled with Hermes are skipped, since they say nothing about you.
+4. **What you tell Scout** with `/scout interests`. This is the fastest fix for a new install with little history.
+
+Scout counts **conversations, not words.** A topic that comes up in three chats says more than twenty hits inside one pasted article, so each conversation counts at most three hits. Runs of scheduled tasks are kept apart and count only for what the task is mainly about. Each pick is labelled **strong match** only when a direct signal (two or more conversations, repeated tool use, a skill you made, or something you told Scout) is backed by a second one. Anything less is an **early guess**. Things you chose to tell Hermes count more than passing mentions. The best plugin from each of your topics comes first, so one strong interest cannot fill the whole list. Official and verified plugins get a small boost, plugins with known issues a small penalty. `/scout profile` shows exactly what went into your picks.
 
 **Settings** come from each plugin's own known issues. Many name a Hermes setting ("Needs plugins.isolation: in_process", "Set web.cache_enabled: false"). Plugin Scout reads those settings in your config and speaks up only when the warning applies to you, on installed plugins and on picks alike. Tested against every plugin in the catalog on a typical setup, it flagged only the one warning that truly applied.
 
@@ -81,11 +102,19 @@ What a careful user would want to know before installing:
 - **Network.** One download only: the public catalog index from `hermes-agent.nousresearch.com`, which redirects to Nous's GitHub Pages site `nousresearch.github.io/hermes-agent` (about 1.7 MB), cached for 6 hours. It refuses any other address or redirect. No telemetry, no analytics, no other servers.
 - **Reads outside its own data (read-only).**
   - Your Hermes session history, last 30 days, up to 200 sessions, opened read-only. Used only to count tools and topic keywords.
+  - Hermes's memory files (`memories/USER.md`, `MEMORY.md`, up to 64 KB each) and your skill list, to match topics. Nothing from them is stored or sent; only topic names, counts and your own skill names appear in Scout's output.
   - `config.yaml`: the list of enabled plugins, the memory provider, and any setting a plugin's known issues name (to check whether the warning applies to you).
   - Other installed plugins' `plugin.yaml` files and Hermes's install record (`plugins/.install-metadata.json`), to see what you have and which version.
-- **Writes.** Only its own plugin data folder (the catalog cache) and its own plugin state (the "last looked" snapshot and your dismissed list).
-- **Model calls.** Only when you ask for `ai` (or the agent sets `ai_rank` / `ai_check`). They go to the model you already use, through Hermes. What is sent: topic counts (for example `{"music": {"mentions": 3}}`) and public catalog descriptions. **Your message text is never sent.** A test plants a fake PIN in a chat and fails if it ever reaches a prompt. With a small model this costs a fraction of a cent per run.
+- **Writes.** Only its own plugin data folder (the catalog cache) and its own plugin state (the "last looked" snapshot, your dismissed list, and interests you give it).
+- **Model calls.** Only when you ask for `ai` (or the agent sets `ai_rank` / `ai_check`). They go to the model you already use, through Hermes. What is sent: per-topic counts (for example `{"music": {"mentions": 3, "in_memory": true}}`) and public catalog descriptions. Not your messages, not your memory text, not your skill names. **Your message text is never sent.** A test plants a fake PIN in a chat and fails if it ever reaches a prompt. With a small model this costs a fraction of a cent per run.
 - **Never.** No shell commands, no background processes, no credentials, no installs, no changes to other plugins or your config, no overrides of Hermes internals.
+
+## Roadmap
+
+- **One exploring pick:** reserve one slot for a plugin just outside your current topics, so Scout learns what else you like (the explore/exploit idea from recommender research).
+- **Dismissals that teach:** skipping several picks in a topic lowers that topic, not only the plugin.
+- **`/scout more` and `/scout less`:** steer topics directly.
+- **Recency:** weigh last week more than last month.
 
 ## Security
 

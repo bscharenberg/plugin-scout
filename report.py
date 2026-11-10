@@ -4,6 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+try:
+    from . import usage
+except ImportError:  # loaded as a plain module (tests)
+    import usage
+
 _LABEL = {
     "conflict": "CONFLICT",
     "pulled": "PULLED",
@@ -39,7 +44,8 @@ CLASHES = ("conflict", "likely")
 
 def _pick_lines(p: dict[str, Any]) -> list[str]:
     tier = f" [{p['tier']}]" if p.get("tier") in ("official", "verified") else ""
-    lines = [f"{p['title']}{tier}"]
+    conf = f" ({p['confidence']})" if p.get("confidence") else ""
+    lines = [f"{p['title']}{tier}{conf}"]
     if p.get("why"):
         lines.append(f"  {p['why']}")
     lines.append(f"  Why: {p['evidence']}")
@@ -60,8 +66,9 @@ def overview_text(picks: list[dict[str, Any]], profile: dict[str, Any],
     for f in (f for f in findings if f["kind"] == "pulled"):  # safety first, always
         lines += [""] + _finding_lines(f)
     lines += ["", "For you:"]
-    if not profile.get("sessions"):
-        lines.append("  Not enough history yet. Use Hermes for a few days; picks follow what you actually do.")
+    if _no_signal(profile):
+        lines.append("  Not enough to go on yet. Use Hermes for a few days, or tell me what you use: "
+                     "/scout interests spotify, notion, travel")
     elif not picks:
         lines.append("  Nothing in the catalog stands out for what you do yet.")
     for p in picks:
@@ -79,22 +86,98 @@ def overview_text(picks: list[dict[str, Any]], profile: dict[str, Any],
     if not heads and not clashes:
         lines += ["", "No other plugins enabled yet, so nothing to check." if plugin_count == 0 else
                   f"Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear."]
-    lines += ["", "More: /scout check (full plugin check), /scout picks, /scout week, /scout help"]
+    if picks and (profile.get("sessions") or 0) < THIN_HISTORY:
+        lines += ["", COLD_START_TIP]
+    lines += ["", "More: /scout profile (what I know about you), /scout check, /scout week, /scout help"]
     return "\n".join(lines)
 
 
+THIN_HISTORY = 5
+LABELS = usage.LABELS
+COLD_START_TIP = ("Tip: picks sharpen as you use Hermes. To help now, tell me what you use: "
+                  "/scout interests spotify, notion, travel")
+
+
+def _sources(profile: dict[str, Any]) -> str:
+    """Plain words for where the picks came from."""
+    topics = profile.get("topics") or {}
+    parts = []
+    if profile.get("sessions"):
+        n = profile["sessions"]
+        parts.append(f"{n} conversation{'' if n == 1 else 's'} in the last {profile.get('window_days', 30)} days")
+    if any(t.get("memory") for t in topics.values()):
+        parts.append("your Hermes memory")
+    if any(t.get("skills") for t in topics.values()):
+        parts.append("your skills")
+    if any(t.get("interests") for t in topics.values()):
+        parts.append("what you told me")
+    if len(parts) > 1:
+        return ", ".join(parts[:-1]) + " and " + parts[-1]
+    return parts[0] if parts else "nothing yet"
+
+
+def _no_signal(profile: dict[str, Any]) -> bool:
+    return not profile.get("topics")
+
+
 def picks_text(picks: list[dict[str, Any]], profile: dict[str, Any]) -> str:
-    if not profile.get("sessions"):
-        return ("Plugin Scout: not enough history yet. Use Hermes for a few days and ask again; "
-                "picks are based on what you actually do.")
+    if _no_signal(profile):
+        return ("Plugin Scout: not enough to go on yet. Use Hermes for a few days, or tell me "
+                "what you use: /scout interests spotify, notion, travel")
+    thin = (profile.get("sessions") or 0) < THIN_HISTORY
     if not picks:
-        return (f"Plugin Scout: read {profile['sessions']} session(s) from the last "
-                f"{profile['window_days']} days. No plugin stands out for what you do yet.")
-    s = "" if profile["sessions"] == 1 else "s"
-    lines = [f"Plugin Scout: {len(picks)} pick{'' if len(picks) == 1 else 's'} from "
-             f"{profile['sessions']} session{s} in the last {profile['window_days']} days."]
+        return (f"Plugin Scout: read {_sources(profile)}. No plugin stands out for what you do yet."
+                + ("\n" + COLD_START_TIP if thin else ""))
+    lines = [f"Plugin Scout: {len(picks)} pick{'' if len(picks) == 1 else 's'} from {_sources(profile)}."]
     for p in picks:
         lines += [""] + _pick_lines(p)
+    if thin:
+        lines += ["", COLD_START_TIP]
+    return "\n".join(lines)
+
+
+def profile_text(profile: dict[str, Any], limit: int = 8) -> str:
+    """What Scout knows about you and where each piece came from. Counts and names only."""
+    topics = profile.get("topics") or {}
+    lines = ["What Plugin Scout knows about how you use Hermes",
+             "(counted on this computer from your own data; your messages are never stored or sent)", ""]
+    sessions = profile.get("sessions") or 0
+    if sessions:
+        src = ", ".join(f"{k} {v}" for k, v in sorted((profile.get("sources") or {}).items(), key=lambda kv: -kv[1]))
+        runs = profile.get("scheduled_runs") or 0
+        lines.append(f"History: {sessions} conversation{'' if sessions == 1 else 's'} in the last "
+                     f"{profile.get('window_days', 30)} days"
+                     + (f", plus {runs} scheduled-task run{'' if runs == 1 else 's'}" if runs else "")
+                     + (f" ({src})" if src else ""))
+    else:
+        lines.append("History: none yet in the last 30 days")
+    tools = profile.get("tools") or {}
+    if tools:
+        top = sorted(tools.items(), key=lambda kv: -kv[1])[:4]
+        lines.append("Tools Hermes used for you: " + ", ".join(f"{t} {n}x" for t, n in top))
+    if not topics:
+        lines += ["", "Topics: nothing yet. Tell me what you use: /scout interests spotify, notion, travel"]
+        return "\n".join(lines)
+
+    lines += ["", "Topics, strongest first:"]
+    total = sessions
+    for topic, st in sorted(topics.items(), key=lambda kv: -usage._weight(kv[1]))[:limit]:
+        why = []
+        if st.get("sessions"):
+            why.append(f"came up in {st['sessions']} of {total} conversation{'' if total == 1 else 's'}")
+        if st.get("tool_calls"):
+            why.append(f"{st['tool_calls']} tool use{'' if st['tool_calls'] == 1 else 's'}")
+        if st.get("scheduled"):
+            why.append("in a scheduled task")
+        if st.get("memory"):
+            why.append("in your memory")
+        if st.get("skills"):
+            why.append("skill " + ", ".join(st["skills"][:2]))
+        if st.get("interests"):
+            why.append("you told me")
+        lines.append(f"  {LABELS.get(topic, topic)} ({usage.confidence(st)}): " + "; ".join(why))
+    lines += ["", "Change it: /scout interests <words> to add, /scout interests clear to reset, "
+                  "/scout dismiss <plugin> to skip a pick."]
     return "\n".join(lines)
 
 
@@ -141,4 +224,44 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
     for f in rest_kinds[:5]:
         add(f)
     lines.append(rest)
+    return "\n".join(lines)
+
+
+def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dict[str, Any],
+                 picks: list[dict[str, Any]]) -> str:
+    """First run: value in the first minute, then one question. No waiting a week to be useful."""
+    lines = ["Welcome to Plugin Scout. Here is what I can tell you right now:", ""]
+    serious = [f for f in findings if f["kind"] in ("pulled",) + HEADS_UP + CLASHES]
+    lines.append("1. Your setup")
+    if serious:
+        for f in serious[:3]:
+            lines.append(f"   [{_LABEL[f['kind']]}] {f['title']}")
+        lines.append("   Details: /scout check")
+    elif plugin_count:
+        lines.append(f"   Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear.")
+    else:
+        lines.append("   No other plugins enabled yet, so nothing can clash.")
+    lines += ["", "2. What I already know about you"]
+    topics = profile.get("topics") or {}
+    if topics:
+        lines.append(f"   From {_sources(profile)}:")
+        for topic, st in sorted(topics.items(), key=lambda kv: -usage._weight(kv[1]))[:3]:
+            lines.append(f"   - {LABELS.get(topic, topic)} ({usage.confidence(st)})")
+        lines.append("   Full picture: /scout profile")
+    else:
+        lines.append("   Nothing yet. That is fine; the question below fixes it.")
+    lines += ["", "3. Picks so far"]
+    if picks:
+        for p in picks:
+            conf = f" ({p['confidence']})" if p.get("confidence") else ""
+            lines.append(f"   - {p['title']}{conf}: {p['install']}")
+            if p.get("heads_up"):
+                lines.append(f"     Heads up: {p['heads_up']}")
+    else:
+        lines.append("   None yet.")
+    lines += ["", "One question to sharpen this: what do you want Hermes to handle for you?",
+              "Reply with numbers, e.g. /scout interests 1, 6"]
+    for i, (job, _) in enumerate(usage.JOBS, 1):
+        lines.append(f"   {i}. {job}")
+    lines += ["", "I get sharper as you use Hermes. Change anything with /scout interests or /scout profile."]
     return "\n".join(lines)

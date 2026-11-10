@@ -63,7 +63,7 @@ class PickTests(unittest.TestCase):
         picks = usage.candidates(self.profile, FIXTURE["entries"], exclude=set())
         music = [p["name"] for p in picks if p["topic"] == "music"]
         self.assertEqual(music[0], "spotify")
-        self.assertIn("you mentioned music 3 times in 2 sessions", music_evidence(picks))
+        self.assertIn("music came up in 2 of your 2 conversations", music_evidence(picks))
 
     def test_ambiguous_names_do_not_match(self):
         # "inbox" is a work-status plugin, not email.

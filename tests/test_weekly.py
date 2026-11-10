@@ -103,7 +103,7 @@ class OverviewTests(unittest.TestCase):
 
     def test_no_history_yet(self):
         text = report.overview_text([], {"sessions": 0, "window_days": 30}, [], 0)
-        self.assertIn("Not enough history yet", text)
+        self.assertIn("Not enough to go on yet", text)
 
 if __name__ == "__main__":
     unittest.main()

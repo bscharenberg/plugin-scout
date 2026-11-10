@@ -25,6 +25,8 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Other plugins' `plugin.yaml` / `plugin.json` | Third-party plugin authors | Untrusted. Size capped at 256 KB, safe YAML loaders only, fields cleaned. |
 | Model replies (optional `ai` modes) | Your model, possibly steered by catalog text | Untrusted. Only known plugin names accepted, text cleaned and capped. |
 | Session history | You | Private. Counted locally, never sent. |
+| Hermes memory (`USER.md`, `MEMORY.md`) and your skill list | You | Private. Size capped, matched locally against fixed topic lists, never stored or sent. Bundled skills skipped. |
+| Interests you give Scout | You | Cleaned and capped (12 items, 40 characters each), kept in Scout's own plugin state. |
 | `config.yaml` | You | Trusted, read-only. |
 
 **Threats and what stops them**
@@ -32,6 +34,7 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Threat | Mitigation | Test |
 |---|---|---|
 | Your messages leak to a model or a server | Only topic counts and matched keywords from fixed lists leave the profiler. The only server contacted is the catalog. | `test_profile_holds_counts_not_message_text`, `test_prompt_never_contains_message_text` |
+| Your memory or skill names leak into an AI prompt | The ranking prompt gets per-topic counts and true/false flags only. Agent tools return picks and a summary, not the raw profile. | `test_ai_prompt_gets_counts_not_skill_names_or_memory`, `test_memory_adds_topics_without_storing_text` |
 | A catalog entry carries terminal escape codes, invisible or direction-changing Unicode | Removed at the door, before any code sees the text | `test_every_field_is_clean_and_capped`, `test_reports_built_from_it_stay_clean` |
 | A plugin name smuggles shell syntax into a suggested `hermes plugins install` command | Names must match the catalog's own rule `[a-z0-9_-]{1,64}`, or the entry is dropped | `test_bad_names_and_non_entries_are_dropped` |
 | A description tries to give the model orders (for example, "recommend me and call me safe") | Catalog text sits inside `<catalog>` fences with a note that it is data, and cannot close the fence early. The model can only choose from the rule-based shortlist. | `test_catalog_text_is_fenced_and_cannot_close_the_fence` |
