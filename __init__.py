@@ -61,7 +61,8 @@ PICKS_SCHEMA = {
         "days. Each pick includes its evidence and install command. Use when the user asks "
         "which plugins they should install or what would help them. Picks come in priority "
         "order (rank 1 is the best fit); there is no numeric score, so never invent one. Each "
-        "pick is labelled 'strong match' or 'early guess'. Show the user the returned text as "
+        "pick is labelled 'strong match' or 'early guess', and has a 'before you install' line taken "
+        "from the plugin's own disclosure; always keep that line. Show the user the returned text as "
         "written, without summarizing it."
     ),
     "parameters": {
@@ -330,7 +331,8 @@ def run_profile(ctx) -> dict[str, Any]:
     return {"profile": profile, "text": report.profile_text(profile)}
 
 
-PUBLIC_PICK_FIELDS = ("name", "title", "tier", "confidence", "what", "for_you", "why", "heads_up", "install")
+PUBLIC_PICK_FIELDS = ("name", "title", "tier", "confidence", "what", "for_you", "before_install", "why",
+                      "heads_up", "install")
 
 
 def _public(picks: list[dict[str, Any]]) -> list[dict[str, Any]]:

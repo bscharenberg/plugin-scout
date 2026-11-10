@@ -17,8 +17,9 @@ from collections import Counter, defaultdict
 from typing import Any, Callable, Iterable, Optional
 
 try:
-    from . import sanitize
+    from . import risk, sanitize
 except ImportError:  # loaded as a plain module (tests)
+    import risk
     import sanitize
 
 logger = logging.getLogger(__name__)
@@ -524,6 +525,7 @@ def candidates(profile: dict[str, Any], entries: list[dict[str, Any]], exclude: 
                 "evidence": _evidence(topic, stats, profile),
                 "what": what_it_does(e),
                 "for_you": for_you(topic, stats, profile, e),
+                "before_install": risk.before_you_install(e),
                 "confidence": confidence(stats),
                 "install": f"hermes plugins install {e['name']}",
             }

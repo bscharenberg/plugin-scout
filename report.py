@@ -53,6 +53,8 @@ def _pick_lines(p: dict[str, Any]) -> list[str]:
         lines.append("  For you: " + ". ".join(reasons[:2]) + ".")
     else:
         lines.append(f"  For you: {p['evidence']}")
+    if p.get("before_install"):
+        lines.append(f"  Before you install: {p['before_install']}")
     if p.get("heads_up"):
         lines.append(f"  Heads up: {p['heads_up']}")
     lines.append(f"  Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
@@ -226,6 +228,8 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
         if p.get("what"):
             lines.append(f"  - {p['what']}")
         lines.append("  - " + (". ".join((p.get("for_you") or [p["evidence"]])[:2]).rstrip(".") + "."))
+        if p.get("before_install"):
+            lines.append(f"  - Before you install: {p['before_install']}")
         lines.append(f"  - Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
     rest_kinds = [f for f in to_act if f["kind"] in HEADS_UP] + [f for f in to_act if f["kind"] in CLASHES]
     for f in rest_kinds[:5]:
@@ -270,6 +274,8 @@ def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dic
         for p in picks:
             conf = f" ({p['confidence']})" if p.get("confidence") else ""
             lines.append(f"   - {p['title']}{conf}: {p['install']}")
+            if p.get("before_install") and not p["before_install"].startswith(("Its ", "Nothing specific")):
+                lines.append(f"     Before you install: {p['before_install']}")
             if p.get("heads_up"):
                 lines.append(f"     Heads up: {p['heads_up']}")
     else:
