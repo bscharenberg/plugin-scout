@@ -63,16 +63,18 @@ The agent has eight tools: `scout_start`, `scout_picks`, `scout_interests`, `sco
 ### Example
 
 ```
-Cloudflare Web Search
-  Why: In the last 30 days you mentioned web 1 time in 1 session and you used web_search 2 times.
+Cloudflare Web Search (strong match)
+  What it does: Cloudflare Web Search backend for Hermes' existing web_search tool, with Ceramic, Exa, or Linkup selected in plugin settings.
+  For you: Hermes did 36 web searches for you. Web came up in 4 of your 10 chats.
   Heads up: It needs web.cache_enabled: false. Yours is true.
   Install: hermes plugins install cloudflare-web-search   Not for you: /scout dismiss cloudflare-web-search
 ```
 
 ```
-Spotify [official]
-  Why: In the last 30 days you mentioned music 3 times in 2 sessions.
-  Install: hermes plugins install spotify   Not for you: /scout dismiss spotify
+mcp-serve [official] (strong match)
+  What it does: Run Hermes as an MCP server: hermes mcp-serve lets any MCP client (Claude Code, Claude Desktop, Cursor, Codex) list and read your messaging conversations, poll...
+  For you: It works with Claude and MCP, which you use or have brought up. You've asked about context engineering and multi-agent.
+  Install: hermes plugins install mcp-serve   Not for you: /scout dismiss mcp-serve
 ```
 
 ```
@@ -98,7 +100,7 @@ The last one is from `/scout check`, the full plugin check.
 3. **Skills you made or added.** Skills bundled with Hermes are skipped, since they say nothing about you.
 4. **What you tell Scout** with `/scout interests`. This is the fastest fix for a new install with little history.
 
-Scout counts **conversations, not words.** A topic that comes up in three chats says more than twenty hits inside one pasted article, so each conversation counts at most three hits. Runs of scheduled tasks are kept apart and count only for what the task is mainly about. Each pick is labelled **strong match** only when a direct signal (two or more conversations, repeated tool use, a skill you made, or something you told Scout) is backed by a second one. Anything less is an **early guess**. Things you chose to tell Hermes count more than passing mentions. The best plugin from each of your topics comes first, so one strong interest cannot fill the whole list. Official and verified plugins get a small boost, plugins with known issues a small penalty. `/scout profile` shows exactly what went into your picks.
+Scout counts **conversations, not words.** A topic that comes up in three chats says more than twenty hits inside one pasted article, so each conversation counts at most three hits. Runs of scheduled tasks are kept apart and count only for what the task is mainly about. Each pick is labelled **strong match** only when a direct signal (two or more conversations, repeated tool use, a skill you made, or something you told Scout) is backed by a second one. Anything less is an **early guess**. Things you chose to tell Hermes count more than passing mentions. Each pick says **what it does** (the plugin's own words from the catalog) and **why it fits you**, using the most specific reasons first: a product you named that the plugin works with, a skill you built, phrases you used, then how much Hermes did for you. Counts are a last resort. The best plugin from each of your topics comes first, so one strong interest cannot fill the whole list. Official and verified plugins get a small boost, plugins with known issues a small penalty. `/scout profile` shows exactly what went into your picks.
 
 **Settings** come from each plugin's own known issues. Many name a Hermes setting ("Needs plugins.isolation: in_process", "Set web.cache_enabled: false"). Plugin Scout reads those settings in your config and speaks up only when the warning applies to you, on installed plugins and on picks alike. Tested against every plugin in the catalog on a typical setup, it flagged only the one warning that truly applied.
 

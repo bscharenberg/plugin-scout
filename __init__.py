@@ -330,7 +330,7 @@ def run_profile(ctx) -> dict[str, Any]:
     return {"profile": profile, "text": report.profile_text(profile)}
 
 
-PUBLIC_PICK_FIELDS = ("name", "title", "tier", "confidence", "evidence", "why", "heads_up", "install")
+PUBLIC_PICK_FIELDS = ("name", "title", "tier", "confidence", "what", "for_you", "why", "heads_up", "install")
 
 
 def _public(picks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -366,8 +366,7 @@ def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
         if found:
             p["heads_up"] = found[0]["why"]
     return {"profile": {k: profile.get(k) for k in ("sessions", "window_days", "topics")},
-            "picks": _public(picks), "text": report.picks_text(picks, profile) + _stale_note(loaded),
-            "note": "Picks are in priority order: rank 1 is the best fit. There is no numeric score."}
+            "picks": _public(picks), "text": report.picks_text(picks, profile) + _stale_note(loaded)}
 
 
 def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:

@@ -181,7 +181,7 @@ def build_profile(sessions: Iterable[tuple[dict[str, Any], list[dict[str, Any]]]
                 found = [x.group(0).lower().strip() for x in pattern.finditer(text)]
                 if found:
                     hits[topic] += len(found)
-                    topic_terms[topic].update(f for f in found if len(f) >= 4)
+                    topic_terms[topic].update(f for f in found if len(f) >= 3)
         if source in SCHEDULED_SOURCES:
             scheduled_runs += 1
             # a long standing instruction touches many topics in passing: keep only its main ones
@@ -203,7 +203,8 @@ def build_profile(sessions: Iterable[tuple[dict[str, Any], list[dict[str, Any]]]
         "tools": dict(tools.most_common()),
         "topics": {t: {"mentions": topic_mentions[t], "sessions": len(topic_sessions[t]),
                        "tool_calls": topic_tools[t], "scheduled": t in topic_scheduled,
-                       "terms": [w for w, _ in topic_terms[t].most_common(5)]}
+                       "terms": [w for w, _ in topic_terms[t].most_common(5)],
+                       "asked": [w for w, _ in topic_terms[t].most_common(6)]}
                    for t in TOPICS if topic_mentions[t] or topic_tools[t] or t in topic_scheduled},
     }
 
@@ -363,6 +364,105 @@ def _evidence(topic: str, stats: dict[str, Any], profile: dict[str, Any]) -> str
     return "; ".join(out) + "."
 
 
+# Product and project names worth calling out when a plugin works with one you mention.
+NAMED = ("claude", "mcp", "spotify", "notion", "obsidian", "gmail", "outlook", "github", "slack",
+         "discord", "telegram", "whatsapp", "signal", "strava", "garmin", "amazon", "zapier", "n8n",
+         "youtube", "linkedin", "google", "arxiv", "todoist", "home assistant")
+# Words too general to be a useful reason on their own.
+GENERIC = {"news", "research", "code", "memory", "remember", "recall", "forget", "learn", "learning",
+           "explain", "security", "privacy", "writing", "write", "buy", "buying", "prices", "price",
+           "schedule", "scheduled", "calendar", "trip", "trips", "travel", "automation", "automate",
+           "music", "images", "image", "video", "videos", "budget", "email", "emails", "pdf", "maps",
+           "search the web", "websites", "website", "browse", "python", "script", "scripts", "bug", "bugs"}
+
+
+_LABEL_PREFIX = re.compile(r"^[^:.]{0,60}\bfor Hermes(?: Agent| Desktop)?\s*[:\u2014\u2013-]\s*", re.IGNORECASE)
+
+
+def what_it_does(entry: dict[str, Any], limit: int = 160) -> str:
+    """The plugin's own first sentence from the catalog: what it does, in its author's words."""
+    text = sanitize.clean(entry.get("description"), 800)
+    text = re.sub(r"\s*[\u2014\u2013]\s*", ": ", text).replace("`", "")
+    text = _LABEL_PREFIX.sub("", text)          # "Spotify for Hermes: seven tools..." -> "seven tools..."
+    if text:
+        text = text[0].upper() + text[1:]
+    end = text.find(". ")
+    if 20 <= end <= limit:
+        return text[:end] + "."
+    if len(text) <= limit:
+        return text.rstrip(".") + "."
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip(",;:(")
+    return cut + "..."
+
+
+def _named_in(entry: dict[str, Any], words: Iterable[str]) -> list[str]:
+    """Names you used that this plugin's description also mentions, spelled as the plugin spells them."""
+    text = f"{entry.get('title') or ''} {entry.get('description') or ''}"
+    out = []
+    for w in words:
+        if w in NAMED:
+            m = re.search(r"\b" + re.escape(w) + r"\b", text, re.IGNORECASE)
+            if m and m.group(0) not in out:
+                out.append(m.group(0) if not m.group(0).islower() else m.group(0).capitalize())
+    return out
+
+
+TOOL_LABELS = {"web_search": "web search", "web_extract": "page read", "memory": "memory save",
+               "cronjob": "scheduled job", "browser_exec": "browser action", "delegate_task": "subagent task",
+               "todo": "to-do update", "image_generate": "image", "vision_analyze": "image read",
+               "video_generate": "video", "video_analyze": "video read", "text_to_speech": "voice reply",
+               "terminal": "terminal command", "execute_code": "code run", "patch": "file edit",
+               "write_file": "file write", "send_message": "message sent"}
+
+
+def _tool_phrase(tool: str, n: int) -> str:
+    word = TOOL_LABELS.get(tool, tool.replace("_", " "))
+    if n == 1:
+        return f"1 {word}"
+    return f"{n} {word}es" if word.endswith(("ch", "sh", "s", "x")) else f"{n} {word}s"
+
+
+def _join(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def for_you(topic: str, stats: dict[str, Any], profile: dict[str, Any],
+            entry: dict[str, Any], limit: int = 2) -> list[str]:
+    """The most specific reasons this plugin fits you, best first. Counts are a last resort."""
+    shown = label(topic)
+    total = profile.get("sessions") or 0
+    topics = profile.get("topics", {}).values()
+    asked_any = {w for t in topics for w in t.get("asked", [])}
+    job_words = {w for _, ws in JOBS for w in ws}
+    # a word added automatically by an onboarding choice is not something you said
+    words = {w for t in topics for w in (t.get("asked", []) + t.get("interests", []) + t.get("terms", []))
+             if w in asked_any or w not in job_words}
+    reasons = []
+    names = _named_in(entry, sorted(words))
+    if names:
+        reasons.append(f"It works with {_join(names[:2])}, which you use or have brought up")
+    if stats.get("skills"):
+        reasons.append(f"It builds on your {stats['skills'][0]} skill")
+    asked = [w for w in stats.get("asked", []) if w not in GENERIC and w not in NAMED]
+    if asked:
+        reasons.append(f"You've asked about {_join(asked[:2])}")
+    used = [t for t in TOPICS.get(topic, {}).get("tools", []) if profile.get("tools", {}).get(t)]
+    if used:
+        reasons.append("Hermes did " + _join([_tool_phrase(t, profile["tools"][t]) for t in used[:2]])
+                       + " for you")
+    if stats.get("sessions", 0) >= 2:
+        reasons.append(f"{shown[0].upper() + shown[1:]} came up in {stats['sessions']} of your {_n(total, 'chat')}")
+    if stats.get("scheduled"):
+        reasons.append(f"One of your scheduled tasks covers {shown}")
+    if stats.get("interests"):
+        reasons.append(f"You said {shown} matters to you")
+    if stats.get("memory") and len(reasons) < limit:
+        reasons.append(f"Your Hermes memory mentions {shown}")
+    if stats.get("sessions") == 1 and len(reasons) < limit:
+        reasons.append(f"{shown[0].upper() + shown[1:]} came up in one of your chats")
+    return reasons[:limit]
+
+
 _CUSTOM_CACHE: dict[str, Any] = {}
 
 
@@ -422,6 +522,8 @@ def candidates(profile: dict[str, Any], entries: list[dict[str, Any]], exclude: 
                 "name": e["name"], "title": e.get("title") or e["name"], "tier": e.get("tier"),
                 "category": e.get("category"), "topic": topic, "score": round(score, 2),
                 "evidence": _evidence(topic, stats, profile),
+                "what": what_it_does(e),
+                "for_you": for_you(topic, stats, profile, e),
                 "confidence": confidence(stats),
                 "install": f"hermes plugins install {e['name']}",
             }

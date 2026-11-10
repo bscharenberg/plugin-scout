@@ -108,8 +108,9 @@ class TextTests(unittest.TestCase):
         p = usage.add_signals(_cold(), memory_text=MEMORY, skills=SKILLS)
         picks = usage.candidates(p, FIXTURE["entries"], exclude=set())[:3]
         text = report.picks_text(picks, p)
-        self.assertIn("from your Hermes memory and your skills", text)
+        self.assertIn("How I chose these: /scout profile", text)
         self.assertIn("/scout interests", text)
+        self.assertIn("It works with Spotify", text)  # a name from your memory beats a topic count
 
     def test_profile_view_shows_where_each_signal_came_from(self):
         p = usage.add_signals(usage.build_profile(_sample(), now=NOW), memory_text=MEMORY,

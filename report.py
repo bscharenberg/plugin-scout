@@ -46,9 +46,13 @@ def _pick_lines(p: dict[str, Any]) -> list[str]:
     tier = f" [{p['tier']}]" if p.get("tier") in ("official", "verified") else ""
     conf = f" ({p['confidence']})" if p.get("confidence") else ""
     lines = [f"{p['title']}{tier}{conf}"]
-    if p.get("why"):
-        lines.append(f"  {p['why']}")
-    lines.append(f"  Why: {p['evidence']}")
+    if p.get("what"):
+        lines.append(f"  What it does: {p['what']}")
+    reasons = ([p["why"].rstrip(".")] if p.get("why") else []) + list(p.get("for_you") or [])
+    if reasons:
+        lines.append("  For you: " + ". ".join(reasons[:2]) + ".")
+    else:
+        lines.append(f"  For you: {p['evidence']}")
     if p.get("heads_up"):
         lines.append(f"  Heads up: {p['heads_up']}")
     lines.append(f"  Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
@@ -128,11 +132,12 @@ def picks_text(picks: list[dict[str, Any]], profile: dict[str, Any]) -> str:
     if not picks:
         return (f"Plugin Scout: read {_sources(profile)}. No plugin stands out for what you do yet."
                 + ("\n" + COLD_START_TIP if thin else ""))
-    lines = [f"Plugin Scout: {len(picks)} pick{'' if len(picks) == 1 else 's'} from {_sources(profile)}."]
+    lines = [f"Plugin Scout: {len(picks)} plugin{'' if len(picks) == 1 else 's'} that fit how you use Hermes, best first."]
     for p in picks:
         lines += [""] + _pick_lines(p)
+    lines += ["", "How I chose these: /scout profile"]
     if thin:
-        lines += ["", COLD_START_TIP]
+        lines += [COLD_START_TIP]
     return "\n".join(lines)
 
 
@@ -218,7 +223,9 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
         add(f)
     for p in relevant:
         lines.append(f"[NEW FOR YOU] {p['title']}")
-        lines.append(f"  - {p['evidence']}")
+        if p.get("what"):
+            lines.append(f"  - {p['what']}")
+        lines.append("  - " + (". ".join((p.get("for_you") or [p["evidence"]])[:2]).rstrip(".") + "."))
         lines.append(f"  - Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
     rest_kinds = [f for f in to_act if f["kind"] in HEADS_UP] + [f for f in to_act if f["kind"] in CLASHES]
     for f in rest_kinds[:5]:
