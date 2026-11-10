@@ -31,6 +31,15 @@ After that, it keeps learning from how you use Hermes. `/scout start` shows the 
 
 ## Use
 
+**Just ask in plain words.** Most people talk to Hermes, not type commands, and Plugin Scout works that way too:
+
+- "Get me started with Plugin Scout"
+- "I'm into security and AI news" (saved as your interests)
+- "What plugins would help me?" or "Why did you pick that?"
+- "Do any of my plugins conflict?"
+
+Hermes routes these to Plugin Scout's tools. Slash commands do the same things instantly and without using your model:
+
 | Command | What it does |
 |---|---|
 | `/scout` | Overview: plugins that fit you, heads-ups, then any clashes |
@@ -47,7 +56,7 @@ After that, it keeps learning from how you use Hermes. `/scout start` shows the 
 | `/scout seen` | Mark catalog changes as seen |
 | `/scout refresh` | Download the catalog again now |
 
-You can also just ask Hermes ("what plugins should I try?", "do my plugins conflict?"). The agent has six tools: `scout_picks`, `scout_profile`, `scout_conflicts`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
+The agent has eight tools: `scout_start`, `scout_picks`, `scout_interests`, `scout_profile`, `scout_conflicts`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
 
 **Weekly note.** Open `/blueprint` and pick **Weekly plugin scout** to get it every Monday at a time you choose, in the chat it came from. Nothing is scheduled until you set it up.
 

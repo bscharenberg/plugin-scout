@@ -11,5 +11,7 @@ provides_tools:
   - scout_picks
   - scout_weekly
   - scout_profile
+  - scout_start
+  - scout_interests
   - scout_dismiss
 provides_hooks: []

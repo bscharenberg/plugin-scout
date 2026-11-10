@@ -268,8 +268,9 @@ def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dic
     else:
         lines.append("   None stand out yet. The question below will help.")
     lines += ["", "One question to sharpen this: what do you want Hermes to handle for you?",
-              "Reply with numbers, e.g. /scout interests 1, 6"]
+              "Reply with numbers (/scout interests 1, 6) or just tell me in your own words."]
     for i, (job, _) in enumerate(usage.JOBS, 1):
         lines.append(f"   {i}. {job}")
-    lines += ["", "I get sharper as you use Hermes. Change anything with /scout interests or /scout profile."]
+    lines += ["", "I get sharper as you use Hermes. You can type commands with a slash, like /scout picks,",
+              "or just ask in plain words: \"what plugins would help me?\", \"why did you pick that?\""]
     return "\n".join(lines)

@@ -134,6 +134,8 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("[CAUTION] A and B", text)
         self.assertIn("news (", text)
         self.assertIn("/scout interests 1, 6", text)
+        self.assertIn("or just tell me in your own words", text)
+        self.assertIn("or just ask in plain words", text)
         self.assertIn("2. Your likely interests", text)
         self.assertIn("3. Plugins you may find useful", text)
         self.assertIn("Nothing is installed unless you run the command yourself.", text)
@@ -143,6 +145,31 @@ class OnboardingTests(unittest.TestCase):
                 "install": "hermes plugins install cloudflare-web-search",
                 "heads_up": "It needs web.cache_enabled: false. Yours is true."}
         self.assertIn("Heads up: It needs web.cache_enabled", report.welcome_text([], 0, p, [pick]))
+
+    def _registered_tools(self):
+        tools = {}
+        fake = types.SimpleNamespace(
+            state=self.ctx.state, llm=None,
+            register_tool=lambda name, toolset, schema, handler: tools.__setitem__(name, (schema, handler)),
+            register_command=lambda *a, **k: None,
+            register_automation_blueprint=lambda *a, **k: None)
+        self.plugin.register(fake)
+        return tools
+
+    def test_plain_english_tools_are_registered(self):
+        tools = self._registered_tools()
+        self.assertEqual(len(tools), 8)
+        self.assertIn("get started", tools["scout_start"][0]["description"])
+        self.assertIn("scout_start", tools["scout_weekly"][0]["description"])  # weekly points elsewhere
+
+    def test_interests_tool_takes_words_or_numbers(self):
+        _, handler = self._registered_tools()["scout_interests"]
+        out = json.loads(handler({"items": ["Security", "AI news"]}))
+        self.assertEqual(out["interests"], ["security", "ai news"])
+        out = json.loads(handler({"items": ["5"]}))
+        self.assertIn("ai agents", out["interests"])
+        out = json.loads(handler({"clear": True}))
+        self.assertEqual(out["interests"], [])
 
     def test_welcome_with_nothing_known(self):
         text = report.welcome_text([], 0, usage.build_profile([], now=NOW), [])

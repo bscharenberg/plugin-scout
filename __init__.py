@@ -24,7 +24,7 @@ CONFLICTS_SCHEMA = {
         "Check the user's enabled Hermes plugins for conflicts and overlaps: two plugins "
         "intercepting the same tool, duplicate tool names, several memory plugins, plugins "
         "pulled from the catalog, available updates and known issues. Each finding includes "
-        "its evidence. Use when the user asks whether their plugins work well together."
+        "its evidence. Use when the user asks whether their plugins work well together. Show the user the returned text as written, without summarizing it."
     ),
     "parameters": {
         "type": "object",
@@ -59,7 +59,7 @@ PICKS_SCHEMA = {
         "Suggest Hermes plugins that fit how the user actually uses Hermes, based on local "
         "counts of the tools they use and the topics in their own messages over the last 30 "
         "days. Each pick includes its evidence and install command. Use when the user asks "
-        "which plugins they should install or what would help them."
+        "which plugins they should install or what would help them. Show the user the returned text as written, without summarizing it."
     ),
     "parameters": {
         "type": "object",
@@ -86,9 +86,10 @@ DISMISS_SCHEMA = {
 WEEKLY_SCHEMA = {
     "name": "scout_weekly",
     "description": (
-        "The user's weekly plugin note in one call: conflicts or updates for their installed "
-        "plugins, and only the new catalog plugins that fit how they use Hermes. Quiet when "
-        "nothing matters. Set mark_seen to true when delivering the scheduled weekly note."
+        "The weekly Plugin Scout note: conflicts or updates for installed plugins, and new "
+        "catalog plugins that fit how the user uses Hermes. Use only for the scheduled weekly "
+        "note or when the user asks what is new this week; for getting started use "
+        "scout_start. Set mark_seen to true when delivering the scheduled weekly note."
     ),
     "parameters": {
         "type": "object",
@@ -104,9 +105,42 @@ PROFILE_SCHEMA = {
         "Show what Plugin Scout knows about how the user uses Hermes and where each signal came "
         "from: topic counts from recent sessions, topics in Hermes memory, skills they made, and "
         "interests they told Scout. Counts and names only. Use when the user asks why Scout "
-        "suggested something or what it knows about them."
+        "suggested something or what it knows about them. Show the user the returned text as written, without summarizing it."
     ),
     "parameters": {"type": "object", "properties": {}},
+}
+
+START_SCHEMA = {
+    "name": "scout_start",
+    "description": (
+        "Plugin Scout's welcome: checks the user's plugin setup, shows their likely interests "
+        "and plugins from the Hermes catalog they may find useful, and ends with one question "
+        "about what they want Hermes to handle. Use when the user wants to get started with "
+        "Plugin Scout, asks what it does or what it can do for them, or asks for plugin "
+        "recommendations for the first time. Show the user the returned text as written, "
+        "without summarizing it. If they answer the question, call scout_interests with their "
+        "choices."
+    ),
+    "parameters": {"type": "object", "properties": {}},
+}
+
+INTERESTS_SCHEMA = {
+    "name": "scout_interests",
+    "description": (
+        "Save what the user says they use or care about, so Plugin Scout's picks fit them. Use "
+        "when the user describes their interests or tools in their own words (\"I'm into "
+        "security and AI news\", \"I use Notion and Spotify\") or answers the welcome question "
+        "with numbers. Pass short phrases or the numbers they gave. Set clear to true when they "
+        "want to start over. Afterwards, offer to show their updated picks with scout_picks."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "items": {"type": "array", "items": {"type": "string"},
+                      "description": "Short interests in the user's words, or the numbers they chose, e.g. [\"security\", \"ai news\"] or [\"1\", \"10\"]."},
+            "clear": {"type": "boolean", "description": "Forget the interests saved so far."},
+        },
+    },
 }
 
 MAX_SESSIONS = 200
@@ -417,6 +451,20 @@ def register(ctx):
         result.pop("profile", None)  # the agent gets the summary text, not raw structures
         return json.dumps(result, default=str)
 
+    def tool_start(args, **kwargs):
+        result = _safe(lambda: run_welcome(ctx))
+        return json.dumps({"text": result["text"]}, default=str)
+
+    def tool_interests(args, **kwargs):
+        args = args or {}
+        if args.get("clear"):
+            return json.dumps(_safe(lambda: run_interests(ctx, "clear")), default=str)
+        items = args.get("items") or []
+        if isinstance(items, str):
+            items = [items]
+        raw = ", ".join(str(i) for i in items if str(i).strip())
+        return json.dumps(_safe(lambda: run_interests(ctx, raw)), default=str)
+
     def tool_dismiss(args, **kwargs):
         return json.dumps(_safe(lambda: run_dismiss(ctx, (args or {}).get("name", ""))), default=str)
 
@@ -459,6 +507,10 @@ def register(ctx):
                       schema=WEEKLY_SCHEMA, handler=tool_weekly)
     ctx.register_tool(name="scout_profile", toolset=PLUGIN,
                       schema=PROFILE_SCHEMA, handler=tool_profile)
+    ctx.register_tool(name="scout_start", toolset=PLUGIN,
+                      schema=START_SCHEMA, handler=tool_start)
+    ctx.register_tool(name="scout_interests", toolset=PLUGIN,
+                      schema=INTERESTS_SCHEMA, handler=tool_interests)
     ctx.register_tool(name="scout_dismiss", toolset=PLUGIN,
                       schema=DISMISS_SCHEMA, handler=tool_dismiss)
     ctx.register_command("scout", handler=command,
