@@ -147,7 +147,7 @@ def profile_text(profile: dict[str, Any], limit: int = 8) -> str:
     """What Scout knows about you and where each piece came from. Counts and names only."""
     topics = profile.get("topics") or {}
     lines = ["What Plugin Scout knows about how you use Hermes",
-             "(counted on this computer from your own data; your messages are never stored or sent)", ""]
+             "(worked out on your own computer from your Hermes history; your conversations are never stored or sent anywhere)", ""]
     sessions = profile.get("sessions") or 0
     if sessions:
         src = ", ".join(f"{k} {v}" for k, v in sorted((profile.get("sources") or {}).items(), key=lambda kv: -kv[1]))

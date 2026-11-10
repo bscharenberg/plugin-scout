@@ -137,8 +137,9 @@
           h("div", { className: "ps-kicker" }, "Setup advisor"),
           h("h1", null, "Plugin Scout"),
           h("p", null, "Reads how you actually use Hermes and the whole plugin catalog, then shows what fits you, " +
-            "what each plugin does with your data, and whether your setup holds together. " +
-            "Counted on this machine. Recommends only; never installs.")),
+            "what each plugin does with your data, and whether your plugins and settings conflict with each other. " +
+            "It all runs on your own computer, and your conversations are never sent anywhere. " +
+            "It recommends only and never installs.")),
         h("button", { type: "button", className: "ps-btn ps-hero-action", disabled: busy,
                       onClick: function () { load(SDK.fetchJSON(API + "/overview")); } }, busy ? "Scouting..." : "Rescan")),
       h("div", { className: "ps-stats" },
