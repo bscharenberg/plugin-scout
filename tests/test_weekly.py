@@ -17,14 +17,29 @@ FIXTURE = catalog.validate(json.loads((HERE / "fixtures" / "catalog_subset.json"
 NO_CHANGES = {"new": [], "updated": [], "removed": []}
 
 
+def _music_fan():
+    """A clear music fan: Spotify in two chats plus saying so. A strong match, not a guess."""
+    return usage.add_signals(usage.build_profile(_sample(), now=NOW), interests=["spotify"])
+
+
 class RelevantNewTests(unittest.TestCase):
     def setUp(self):
-        self.profile = usage.build_profile(_sample(), now=NOW)
+        self.profile = _music_fan()
 
     def test_only_new_plugins_that_fit_are_kept(self):
         new = ["spotify", "memory-shield", "identity"]  # only spotify fits a music user
         rel = usage.relevant_new(self.profile, new, FIXTURE["entries"], exclude=set())
         self.assertEqual([p["name"] for p in rel], ["spotify"])
+
+    def test_early_guess_topics_stay_out_of_the_weekly_note(self):
+        # one passing mention of memory is an early guess: no memory plugins in a note sent to you
+        weak = usage.build_profile([({"id": "x", "last_active": NOW - 86400, "source": "cli"},
+                                     [{"role": "user", "content": "remember to check the memory thing"}])], now=NOW)
+        rel = usage.relevant_new(weak, ["memory-shield", "memory-rewind", "supermemory", "holographic"],
+                                 FIXTURE["entries"], exclude=set())
+        self.assertEqual(rel, [])
+        # the same new plugins do show up as picks you ask for
+        self.assertTrue(usage.candidates(weak, FIXTURE["entries"], exclude=set()))
 
     def test_old_plugins_never_show_as_new(self):
         rel = usage.relevant_new(self.profile, ["identity"], FIXTURE["entries"], exclude=set())
@@ -49,7 +64,7 @@ class DigestTextTests(unittest.TestCase):
         self.assertIn("3 new, 1 updated, 0 removed", text)
 
     def test_new_for_you_first_then_heads_ups_and_clashes(self):
-        profile = usage.build_profile(_sample(), now=NOW)
+        profile = _music_fan()
         rel = usage.relevant_new(profile, ["spotify"], FIXTURE["entries"], exclude=set())
         clash = {"kind": "likely", "severity": 2, "title": "memory-shield and provenance-gate "
                  "both step in on `memory`", "evidence": ["Both use pre_tool_call."]}
@@ -66,7 +81,7 @@ class DigestTextTests(unittest.TestCase):
     def test_pulled_plugin_still_comes_first(self):
         pulled = {"kind": "pulled", "severity": 3, "title": "or-picker was removed from the catalog",
                   "evidence": ["Security."]}
-        profile = usage.build_profile(_sample(), now=NOW)
+        profile = _music_fan()
         rel = usage.relevant_new(profile, ["spotify"], FIXTURE["entries"], exclude=set())
         text = report.digest_text([pulled], rel, {"new": ["spotify"], "updated": [], "removed": []},
                                   "Nov 02", 1064)

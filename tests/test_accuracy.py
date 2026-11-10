@@ -75,6 +75,8 @@ class ConfidenceTests(unittest.TestCase):
         self.assertEqual(usage.confidence({"interests": ["spotify"]}), "strong match")
         self.assertEqual(usage.confidence({"scheduled": True, "skills": ["ai-news-digest"]}), "strong match")
         self.assertEqual(usage.confidence({"sessions": 2, "scheduled": True}), "strong match")
+        self.assertEqual(usage.confidence({"sessions": 3}), "strong match")  # a real pattern stands alone
+        self.assertEqual(usage.confidence({"sessions": 2}), "early guess")
 
     def test_picks_carry_and_show_confidence(self):
         p = usage.add_signals(usage.build_profile([_s("a", "play spotify")], now=NOW), interests=["spotify"])

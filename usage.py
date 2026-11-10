@@ -296,7 +296,8 @@ def confidence(stats: dict[str, Any]) -> str:
     """
     direct = (stats.get("sessions", 0) >= 2 or stats.get("tool_calls", 0) >= 3
               or bool(stats.get("skills")) or bool(stats.get("interests")))
-    points = ((1.0 if stats.get("sessions", 0) >= 2 else 0.5 if stats.get("sessions") else 0.0)
+    n = stats.get("sessions", 0)
+    points = ((2.0 if n >= 3 else 1.0 if n == 2 else 0.5 if n else 0.0)  # a pattern across 3+ chats stands alone
               + (1.0 if stats.get("tool_calls", 0) >= 3 else 0.0)
               + (1.0 if stats.get("scheduled") else 0.0)
               + (1.0 if stats.get("memory") else 0.0)
@@ -487,7 +488,12 @@ def rank_with_llm(profile: dict[str, Any], picks: list[dict[str, Any]],
 
 def relevant_new(profile: dict[str, Any], new_names: Iterable[str], entries: list[dict[str, Any]],
                  exclude: set[str], limit: int = 5) -> list[dict[str, Any]]:
-    """New catalog plugins that match what you actually do. Everything else stays quiet."""
+    """New catalog plugins worth a message: only from topics that are a strong match for you.
+
+    An early guess is fine in /scout picks, which you asked for. A note that arrives on its
+    own should only speak up when Scout is confident (interrupt only when sure).
+    """
     wanted = set(new_names) - exclude
     fresh = [e for e in entries if e["name"] in wanted]
-    return candidates(profile, fresh, exclude=exclude)[:limit]
+    sure = [p for p in candidates(profile, fresh, exclude=exclude) if p.get("confidence") == "strong match"]
+    return diversify(sure, limit)
