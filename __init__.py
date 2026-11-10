@@ -59,7 +59,10 @@ PICKS_SCHEMA = {
         "Suggest Hermes plugins that fit how the user actually uses Hermes, based on local "
         "counts of the tools they use and the topics in their own messages over the last 30 "
         "days. Each pick includes its evidence and install command. Use when the user asks "
-        "which plugins they should install or what would help them. Show the user the returned text as written, without summarizing it."
+        "which plugins they should install or what would help them. Picks come in priority "
+        "order (rank 1 is the best fit); there is no numeric score, so never invent one. Each "
+        "pick is labelled 'strong match' or 'early guess'. Show the user the returned text as "
+        "written, without summarizing it."
     ),
     "parameters": {
         "type": "object",
@@ -327,6 +330,23 @@ def run_profile(ctx) -> dict[str, Any]:
     return {"profile": profile, "text": report.profile_text(profile)}
 
 
+PUBLIC_PICK_FIELDS = ("name", "title", "tier", "confidence", "evidence", "why", "heads_up", "install")
+
+
+def _public(picks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Picks as the user and agent see them: in priority order, ranked 1, 2, 3.
+
+    The internal ranking weight is left out on purpose. It has no fixed scale, so showing it
+    would invite reading it as a score out of 100.
+    """
+    out = []
+    for i, p in enumerate(picks, 1):
+        item = {"rank": i, "interest": usage.label(p.get("topic", ""))}
+        item.update({k: p[k] for k in PUBLIC_PICK_FIELDS if p.get(k)})
+        out.append(item)
+    return out
+
+
 def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
     loaded = _load_catalog()
     cat = loaded["catalog"]
@@ -346,7 +366,8 @@ def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
         if found:
             p["heads_up"] = found[0]["why"]
     return {"profile": {k: profile.get(k) for k in ("sessions", "window_days", "topics")},
-            "picks": picks, "text": report.picks_text(picks, profile) + _stale_note(loaded)}
+            "picks": _public(picks), "text": report.picks_text(picks, profile) + _stale_note(loaded),
+            "note": "Picks are in priority order: rank 1 is the best fit. There is no numeric score."}
 
 
 def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:
@@ -363,7 +384,7 @@ def run_weekly(ctx, mark_seen: bool = False) -> dict[str, Any]:
                                   exclude=have | dismissed | {PLUGIN})
     text = report.digest_text(checked["findings"], relevant, new["changes"], new["since"],
                               len(cat["entries"])) + _stale_note(loaded)
-    return {"findings": checked["findings"], "relevant_new": relevant,
+    return {"findings": checked["findings"], "relevant_new": _public(relevant),
             "changes": new["changes"], "since": new["since"], "text": text}
 
 

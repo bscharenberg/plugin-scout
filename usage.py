@@ -98,6 +98,22 @@ _TOOL_TOPIC = {tool: t for t, v in TOPICS.items() for tool in v["tools"]}
 
 TIER_BOOST = {"official": 1.5, "verified": 1.3}
 
+# Plugins built for one specific language (language packs, Japanese proofreading, German law).
+# Ranked lower unless you named that language, so they appear only when nothing better fits.
+_LANGUAGES = ("japanese|chinese|mandarin|korean|russian|german|french|spanish|portuguese|italian|"
+              "vietnamese|arabic|hindi|turkish|indonesian|thai|polish|dutch|ukrainian")
+_LANG = re.compile(r"\b(" + _LANGUAGES + r")\b", re.IGNORECASE)
+_LANG_PREFIX = re.compile(r"^(?:ja|zh|ko|ru|de|fr|es|pt|it|vi|ar|hi|tr|id|th|pl|nl|uk)[-_]")
+LANGUAGE_PENALTY = 0.4
+
+
+def _language_specific(entry: dict[str, Any], profile: dict[str, Any]) -> bool:
+    found = _LANG.search(f"{entry.get('title') or ''} {(entry.get('description') or '')[:160]}")
+    if not found and not _LANG_PREFIX.match(entry.get("name", "")):
+        return False
+    said = " ".join(w for t in profile.get("topics", {}).values() for w in t.get("interests", []))
+    return not (found and found.group(1).lower() in said.lower())
+
 
 def _tool_names(msg: dict[str, Any]) -> list[str]:
     names = []
@@ -394,6 +410,8 @@ def candidates(profile: dict[str, Any], entries: list[dict[str, Any]], exclude: 
                     score *= 2  # the plugin is named after the exact thing you asked about
                 if e.get("known_issues"):
                     score *= 0.9
+                if _language_specific(e, profile):
+                    score *= LANGUAGE_PENALTY
                 scored.append((score, e))
         scored.sort(key=lambda s: (-s[0], s[1]["name"]))
         for score, e in scored[:per_topic]:

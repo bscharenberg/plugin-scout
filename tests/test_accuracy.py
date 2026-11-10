@@ -53,6 +53,33 @@ class CountingTests(unittest.TestCase):
         self.assertIn("security came up in 2 of your 2 conversations", ev)
 
 
+class RankingTests(unittest.TestCase):
+    ENTRIES = [{"name": "ja-writing-guard", "description": "Rule-based proofreading for Japanese business text."},
+               {"name": "writing-guard", "description": "Style check for every answer in English."}]
+
+    def test_language_specific_plugins_rank_lower(self):
+        p = usage.add_signals(usage.build_profile([], now=NOW), interests=["writing"])
+        names = [x["name"] for x in usage.candidates(p, catalog.validate({"entries": self.ENTRIES})["entries"], set())]
+        self.assertEqual(names, ["writing-guard", "ja-writing-guard"])
+
+    def test_unless_you_named_that_language(self):
+        p = usage.add_signals(usage.build_profile([], now=NOW), interests=["writing", "japanese"])
+        names = [x["name"] for x in usage.candidates(p, catalog.validate({"entries": self.ENTRIES})["entries"], set())]
+        self.assertEqual(names[0], "ja-writing-guard")
+
+    def test_agent_sees_rank_not_raw_score(self):
+        from test_hostile import _load_plugin_package
+        plugin = _load_plugin_package()
+        picks = [{"name": "a", "title": "A", "topic": "ai agents", "score": 81.3, "confidence": "strong match",
+                  "evidence": "e", "install": "hermes plugins install a"},
+                 {"name": "b", "title": "B", "topic": "news", "score": 34.0, "confidence": "early guess",
+                  "evidence": "e", "install": "hermes plugins install b"}]
+        out = plugin._public(picks)
+        self.assertEqual([x["rank"] for x in out], [1, 2])
+        self.assertEqual(out[0]["interest"], "AI agents")
+        self.assertTrue(all("score" not in x for x in out))
+
+
 class ConfidenceTests(unittest.TestCase):
     def test_single_weak_signal_is_an_early_guess(self):
         self.assertEqual(usage.confidence({"sessions": 1}), "early guess")
