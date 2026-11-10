@@ -20,9 +20,10 @@ except ImportError:  # loaded as a plain module (tests)
     import sanitize
 
 try:
-    from . import settings
+    from . import settings, usage
 except ImportError:  # loaded as a plain module (tests)
     import settings
+    import usage
 
 logger = logging.getLogger(__name__)
 
@@ -83,12 +84,37 @@ def _profile(plugin: dict[str, Any], entry: Optional[dict[str, Any]]) -> dict[st
         "catalog_version": (entry or {}).get("version"),
         "known_issues": list((entry or {}).get("known_issues") or []),
         "in_catalog": entry is not None,
+        "entry": entry,
     }
 
 
-def _finding(kind: str, title: str, plugins: Iterable[str], evidence: list[str]) -> dict[str, Any]:
-    return {"kind": kind, "severity": SEVERITY[kind], "title": title,
-            "plugins": sorted(plugins), "evidence": evidence}
+# Plain words for what the hooks and tools do, so a finding never leans on jargon.
+GATE_PLAIN = {"pre_tool_call": "check each tool call before it runs",
+              "transform_tool_result": "rewrite what a tool returns",
+              "transform_terminal_output": "rewrite terminal output",
+              "tool_execution": "wrap each tool call"}
+TOOL_PLAIN = {"memory": "memory saves", "terminal": "terminal commands", "write_file": "file writes",
+              "patch": "file edits", "read_file": "file reads", "execute_code": "code runs",
+              "web_search": "web searches", "web_extract": "page reads", "send_message": "messages you send",
+              "delegate_task": "subagent tasks", "skill_manage": "skill changes", "cronjob": "scheduled jobs"}
+
+
+def _plain_tools(tools: Iterable[str]) -> str:
+    words = [TOOL_PLAIN.get(t, f"{t} calls") for t in sorted(tools)]
+    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
+
+
+def _finding(kind: str, title: str, plugins: Iterable[str], evidence: list[str],
+             meaning: str = "", todo: Optional[list[str]] = None,
+             about: Optional[list[dict[str, str]]] = None) -> dict[str, Any]:
+    """One finding. meaning: what it means for you, in plain words. todo: options, with exact
+    commands, for you to run (Scout never runs them). about: what each plugin involved does."""
+    return {"kind": kind, "severity": SEVERITY[kind], "title": title, "plugins": sorted(plugins),
+            "evidence": evidence, "meaning": meaning, "todo": list(todo or []), "about": list(about or [])}
+
+
+def _about(*profiles: dict[str, Any]) -> list[dict[str, str]]:
+    return [{"title": p["title"], "what": usage.what_it_does(p["entry"])} for p in profiles if p.get("entry")]
 
 
 def check(
@@ -112,9 +138,15 @@ def check(
             owners.setdefault(tool, []).append(prof["name"])
     for tool, names in sorted(owners.items()):
         if len(names) > 1:
+            keep, drop = sorted(names)[0], sorted(names)[1:]
             findings.append(_finding(
                 "conflict", f"{' and '.join(sorted(names))} both register the tool `{tool}`",
-                names, [f"`{tool}` is listed in the tools of: {', '.join(sorted(names))}."]))
+                names, [f"`{tool}` is listed in the tools of: {', '.join(sorted(names))}."],
+                meaning=(f"Two plugins provide a tool with the same name, `{tool}`. Only one of them can "
+                         "answer when Hermes calls it, and you may not be able to tell which one did."),
+                todo=[f"To keep {keep}, turn the other off: hermes plugins disable {drop[0]}",
+                      f"To keep {drop[0]}, turn this one off: hermes plugins disable {keep}"],
+                about=_about(*[p for p in profiles if p["name"] in names])))
 
     # Two plugins gating the same step for the same built-in tool.
     for a, b in combinations(profiles, 2):
@@ -123,12 +155,25 @@ def check(
         if shared_gates and shared_tools:
             tools_txt = ", ".join(f"`{t}`" for t in sorted(shared_tools))
             hooks_txt = ", ".join(f"`{h}`" for h in sorted(shared_gates))
+            plain = _plain_tools(shared_tools)
+            gate = GATE_PLAIN.get(sorted(shared_gates)[0], "step in on tool calls")
+            test = ("ask Hermes to remember something, then type /memory to confirm it was saved"
+                    if "memory" in shared_tools else f"try something that uses {plain}, then check the result")
             findings.append(_finding(
                 "likely", f"{a['title']} and {b['title']} both step in on {tools_txt}",
                 (a["name"], b["name"]),
-                [f"Both register {hooks_txt}.",
-                 f"Both descriptions say they act on {tools_txt}.",
-                 "When both are on, either can block or change the call before the other sees it."]))
+                [f"Both {gate} ({hooks_txt}).",
+                 f"Both descriptions say they act on {plain}.",
+                 "When both are on, either can block or change the call before the other sees it."],
+                meaning=(f"Both plugins can check or change your {plain} before they happen. With both on, "
+                         f"one can block or alter a change before the other sees it. A save might be stopped "
+                         f"without a clear reason, or one plugin's protection might never run. This is a "
+                         f"likely clash, not a certain one."),
+                todo=[f"If you only need {a['title']}, turn {b['title']} off: hermes plugins disable {b['name']}",
+                      f"If you only need {b['title']}, turn {a['title']} off: hermes plugins disable {a['name']}",
+                      f"If you want both, test them together: {test}",
+                      "For a second opinion, run: /scout check ai"],
+                about=_about(a, b)))
 
     # Several memory plugins: only one can be the active memory provider.
     memory = sorted(p["name"] for p in profiles if p["category"] == "memory")
@@ -137,34 +182,51 @@ def check(
                     "Hermes runs only one external memory provider at a time."]
         if active_memory_provider:
             evidence.append(f"Your active memory provider is `{active_memory_provider}`.")
-        findings.append(_finding("overlap", f"{len(memory)} memory plugins installed", memory, evidence))
+        findings.append(_finding(
+            "overlap", f"{len(memory)} memory plugins installed", memory, evidence,
+            meaning="Hermes uses only one external memory provider at a time, so the others sit unused.",
+            todo=["Keep the one you use and remove the rest: hermes plugins remove <name>"]))
 
     for prof in profiles:
         if prof["name"] in removed_by_name:
             reason = removed_by_name[prof["name"]] or "No reason recorded."
-            findings.append(_finding("pulled", f"{prof['name']} was removed from the catalog",
-                                     [prof["name"]], [reason]))
+            findings.append(_finding(
+                "pulled", f"{prof['name']} was removed from the catalog", [prof["name"]], [reason],
+                meaning=("Nous took it out of the catalog, usually for safety or because it no longer meets "
+                         "the catalog's rules. It will not get updates."),
+                todo=[f"Remove it: hermes plugins remove {prof['name']}"], about=_about(prof)))
         if prof["installed_sha"] and prof["catalog_sha"] and prof["installed_sha"] != prof["catalog_sha"]:
             to = prof["catalog_version"] or prof["catalog_sha"][:7]
             frm = prof["installed_version"] or prof["installed_sha"][:7]
-            findings.append(_finding("update", f"Update available for {prof['name']}: {frm} to {to}",
-                                     [prof["name"]], [f"Run: hermes plugins update {prof['name']}"]))
+            findings.append(_finding(
+                "update", f"Update available for {prof['name']}: {frm} to {to}", [prof["name"]],
+                [f"Run: hermes plugins update {prof['name']}"],
+                meaning="A newer, reviewed version is in the catalog.",
+                todo=[f"Update it: hermes plugins update {prof['name']}"]))
         issues = settings.issue_texts(prof["known_issues"])
         for mm in settings.mismatches(issues, config or {}):
             fix = (f"To change it: hermes config set {mm['key']} {mm['wanted']}"
                    + ("" if mm["key"].startswith("plugins.entries.") else " (this setting can affect other plugins too)")
                    if mm["wanted"] else "Check the plugin's README before relying on it.")
             snippet = mm["issue"] if len(mm["issue"]) <= 160 else mm["issue"][:157].rstrip() + "..."
-            findings.append(_finding("settings", f"{prof['title']} may not fully work with your settings",
-                                     [prof["name"]], [mm["why"], f"Its own warning: {snippet}", fix]))
+            findings.append(_finding(
+                "settings", f"{prof['title']} may not fully work with your settings", [prof["name"]],
+                [mm["why"], f"Its own warning: {snippet}", fix],
+                meaning=("The plugin's own warning says it will not fully work with one of your Hermes "
+                         "settings. It may still run, with some of its protection or features missing."),
+                todo=[fix.replace("To change it: ", "Change the setting: "),
+                      "Or keep your setting and accept the limit described in its warning"],
+                about=_about(prof)))
         if issues:
             first = issues[0] if len(issues[0]) <= 160 else issues[0][:157].rstrip() + "..."
             evidence = [first]
             if len(issues) > 1:
                 evidence.append(f"{len(issues) - 1} more: hermes plugins info {prof['name']}")
             label = "known issue" if len(issues) == 1 else "known issues"
-            findings.append(_finding("known_issue", f"{prof['name']}: {len(issues)} {label}",
-                                     [prof["name"]], evidence))
+            findings.append(_finding(
+                "known_issue", f"{prof['name']}: {len(issues)} {label}", [prof["name"]], evidence,
+                meaning="Its author lists limits worth knowing before you rely on it.",
+                todo=[f"Read them: hermes plugins info {prof['name']}"]))
 
     findings.sort(key=lambda f: (-f["severity"], f["title"]))
     return findings

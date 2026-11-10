@@ -16,6 +16,7 @@ sys.path.insert(0, str(HERE.parent))
 
 import catalog  # noqa: E402
 import conflicts  # noqa: E402
+import report  # noqa: E402
 import installed  # noqa: E402
 
 FIXTURE = json.loads((HERE / "fixtures" / "catalog_subset.json").read_text())
@@ -131,6 +132,28 @@ class ConflictTests(unittest.TestCase):
         self.assertEqual(len(likely), 1)
         self.assertIn("`memory`", likely[0]["title"])
         self.assertEqual(likely[0]["plugins"], ["memory-shield", "provenance-gate"])
+
+    def test_clash_explains_itself_and_what_to_do(self):
+        found = conflicts.check([_plugin("memory-shield"), _plugin("provenance-gate")], self.idx)
+        f = [x for x in found if x["kind"] == "likely"][0]
+        self.assertIn("memory saves", f["meaning"])
+        self.assertIn("likely clash, not a certain one", f["meaning"])
+        self.assertEqual([a["title"] for a in f["about"]], ["Memory Shield", "Provenance Gate"])
+        self.assertTrue(all(a["what"] for a in f["about"]))
+        self.assertTrue(f["todo"][0].endswith("hermes plugins disable provenance-gate"))  # copyable as is
+        self.assertTrue(f["todo"][1].endswith("hermes plugins disable memory-shield"))
+        self.assertIn("/memory", f["todo"][2])
+        self.assertNotIn("pre_tool_call", f["meaning"])  # no jargon in the explanation
+        text = report.conflicts_text(found, 2)
+        self.assertIn("What it means:", text)
+        self.assertIn("What you can do:", text)
+
+    def test_every_finding_says_what_to_do(self):
+        plugs = [_plugin("memory-shield"), _plugin("provenance-gate"), _plugin("or-picker"),
+                 _plugin("holographic"), _plugin("supermemory")]
+        for f in conflicts.check(plugs, self.idx, removed=FIXTURE["removed"]):
+            self.assertTrue(f["meaning"], f["kind"])
+            self.assertTrue(f["todo"], f["kind"])
 
     def test_observer_only_plugin_is_not_flagged(self):
         # memory-rewind only observes (post_tool_call, session hooks); it cannot block a save.

@@ -63,7 +63,8 @@ def _findings(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     from_label = {"conflict": "Conflict", "pulled": "Pulled", "likely": "Caution", "settings": "Your settings",
                   "overlap": "Overlap", "update": "Update", "known_issue": "Known issue"}
     return [{"kind": f["kind"], "label": from_label.get(f["kind"], f["kind"]), "title": f["title"],
-             "evidence": f["evidence"][:3], "severity": f["severity"]} for f in findings[:8]]
+             "evidence": f["evidence"][:4], "severity": f["severity"], "meaning": f.get("meaning", ""),
+             "todo": f.get("todo", []), "about": f.get("about", [])} for f in findings[:8]]
 
 
 def _overview() -> dict[str, Any]:

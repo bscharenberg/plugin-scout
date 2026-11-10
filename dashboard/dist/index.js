@@ -108,7 +108,23 @@
       serious.length ? serious.map(function (f, i) {
         return h("div", { key: i, className: "ps-finding" + (f.kind === "conflict" || f.kind === "pulled" ? " ps-tier-danger" : "") },
           h("div", { className: "ps-row" }, h("span", { className: "ps-badge" }, f.label), h("strong", null, plain(f.title))),
-          f.evidence.slice(0, 2).map(function (e, j) { return h("p", { key: j }, plain(e)); }));
+          f.meaning ? h("p", { className: "ps-finding-meaning" }, f.meaning) : null,
+          (f.about || []).length ? h("div", { className: "ps-finding-block" },
+            h("span", { className: "ps-label" }, "What each plugin does"),
+            f.about.map(function (a, j) {
+              return h("p", { key: j }, h("strong", null, a.title + ": "), plain(a.what));
+            })) : null,
+          (f.todo || []).length ? h("div", { className: "ps-finding-block" },
+            h("span", { className: "ps-label" }, "What you can do"),
+            h("ol", { className: "ps-todo" }, f.todo.map(function (step, j) {
+              var at = step.indexOf(": ");
+              var cmd = at > 0 ? step.slice(at + 2) : "";
+              var isCmd = /^(hermes |\/scout|\/memory)/.test(cmd);
+              return h("li", { key: j }, isCmd ? [step.slice(0, at + 1) + " ", h("code", { key: "c" }, cmd)] : plain(step));
+            }))) : null,
+          h("details", { className: "ps-finding-why" },
+            h("summary", null, "Why Scout flagged this"),
+            f.evidence.map(function (e, j) { return h("p", { key: j }, plain(e)); })));
       }) : h("div", { className: "ps-row" },
         h("span", { className: "ps-badge ps-tier-clear" }, "All clear"),
         h("span", { className: "ps-desc" }, props.enabled ? "Nothing clashing, no settings problems." : "Nothing installed that could clash.")));

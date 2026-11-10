@@ -31,8 +31,16 @@ def conflicts_text(findings: list[dict[str, Any]], plugin_count: int, limit: int
     lines = [head, ""]
     for f in findings[:limit]:
         lines.append(f"[{_LABEL[f['kind']]}] {f['title']}")
+        if f.get("meaning"):
+            lines.append(f"  What it means: {f['meaning']}")
+        for a in f.get("about") or []:
+            lines.append(f"  {a['title']}: {a['what']}")
+        if f.get("todo"):
+            lines.append("  What you can do:")
+            lines += [f"    {i}. {t}" for i, t in enumerate(f["todo"], 1)]
+        lines.append("  Why Scout flagged it:")
         for e in f["evidence"][:4]:
-            lines.append(f"  - {e}")
+            lines.append(f"    - {e}")
     if len(findings) > limit:
         lines.append(f"...and {len(findings) - limit} more (minor).")
     return "\n".join(lines)
@@ -62,7 +70,14 @@ def _pick_lines(p: dict[str, Any]) -> list[str]:
 
 
 def _finding_lines(f: dict[str, Any], evidence: int = 2) -> list[str]:
-    return [f"[{_LABEL[f['kind']]}] {f['title']}"] + [f"  - {e}" for e in f["evidence"][:evidence]]
+    lines = [f"[{_LABEL[f['kind']]}] {f['title']}"]
+    if f.get("meaning"):
+        lines.append(f"  {f['meaning']}")
+    else:
+        lines += [f"  - {e}" for e in f["evidence"][:evidence]]
+    if f.get("todo"):
+        lines.append(f"  Next: {f['todo'][0]}" + ("  (more options: /scout check)" if len(f["todo"]) > 1 else ""))
+    return lines
 
 
 def overview_text(picks: list[dict[str, Any]], profile: dict[str, Any],

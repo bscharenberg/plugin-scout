@@ -77,3 +77,13 @@
 
 @media (max-width: 980px) { .ps-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ps-split { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .ps-stats { grid-template-columns: 1fr; } .ps-hero { flex-direction: column; align-items: stretch; } }
+
+.ps-finding-meaning { margin: .45rem 0 0 !important; color: var(--color-foreground) !important; font-size: .86rem !important; line-height: 1.45; }
+.ps-finding-block { margin-top: .6rem; }
+.ps-finding-block p { margin: .25rem 0 0 !important; font-size: .82rem !important; color: color-mix(in srgb, var(--color-foreground) 82%, var(--color-muted-foreground)) !important; }
+.ps-todo { margin: .3rem 0 0; padding-left: 1.4rem; list-style: decimal outside; font-size: .82rem; line-height: 1.45; }
+.ps-todo li { margin-bottom: .35rem; display: list-item; }
+.ps-todo li::marker { color: #f2c94c; font-family: var(--font-mono, ui-monospace, monospace); }
+.ps-todo code { padding: .08rem .35rem; border: 1px solid var(--color-border); background: rgba(0,0,0,.22); color: var(--color-foreground); font-size: .76rem; font-family: var(--font-mono, ui-monospace, monospace); user-select: all; }
+.ps-finding-why { margin-top: .55rem; }
+.ps-finding-why summary { cursor: pointer; color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: .1em; font-size: .66rem; font-family: var(--font-mono, ui-monospace, monospace); }
