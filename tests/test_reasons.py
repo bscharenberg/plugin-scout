@@ -32,6 +32,10 @@ class WhatItDoesTests(unittest.TestCase):
         self.assertNotIn("`", what)
         self.assertLessEqual(len(what), 163)
 
+    def test_number_ranges_survive(self):
+        e = catalog.validate({"entries": [{"name": "w", "description": "A route of 2\u20137 steps you can skip."}]})["entries"][0]
+        self.assertEqual(usage.what_it_does(e), "A route of 2 to 7 steps you can skip.")
+
     def test_skips_a_bare_label_and_dashes(self):
         e = catalog.validate({"entries": [LABELLED, DASHED]})["entries"]
         self.assertEqual(usage.what_it_does(e[0]), "Compose songs and instrumentals from a prompt.")

@@ -26,6 +26,7 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Model replies (optional `ai` modes) | Your model, possibly steered by catalog text | Untrusted. Only known plugin names accepted, text cleaned and capped. |
 | Session history | You | Private. Counted locally, never sent. |
 | Hermes memory (`USER.md`, `MEMORY.md`) and your skill list | You | Private. Size capped, matched locally against fixed topic lists, never stored or sent. Bundled skills skipped. |
+| Dashboard tab requests | You, through the local dashboard | Served only by Hermes's own dashboard (local by default, behind its sign-in). Two actions change anything: saving your choices (numbers 1 to 10 only) and skipping a pick (catalog-style names only). The page renders text, never HTML. Nothing installs. |
 | Interests you give Scout | You | Cleaned and capped (30 items, 40 characters each), kept in Scout's own plugin state. |
 | `config.yaml` | You | Trusted, read-only. |
 

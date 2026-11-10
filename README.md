@@ -58,6 +58,8 @@ Hermes routes these to Plugin Scout's tools. Slash commands do the same things i
 
 The agent has eight tools: `scout_start`, `scout_picks`, `scout_interests`, `scout_profile`, `scout_conflicts`, `scout_weekly`, `scout_whats_new` and `scout_dismiss`.
 
+**Dashboard tab.** Run `hermes dashboard` and open **Plugin Scout** in the sidebar (it opens at `http://127.0.0.1:9119`, served from your own machine). Tap what you want Hermes to handle, see your picks with what each does, why it fits and what it does with your data, copy an install command, skip a pick, and check your setup, all on one page.
+
 **Weekly note.** Open `/blueprint` and pick **Weekly plugin scout** to get it every Monday at a time you choose, in the chat it came from. Nothing is scheduled until you set it up.
 
 ### Example

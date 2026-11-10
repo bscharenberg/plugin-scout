@@ -383,7 +383,9 @@ _LABEL_PREFIX = re.compile(r"^[^:.]{0,60}\bfor Hermes(?: Agent| Desktop)?\s*[:\u
 def what_it_does(entry: dict[str, Any], limit: int = 160) -> str:
     """The plugin's own first sentence from the catalog: what it does, in its author's words."""
     text = sanitize.clean(entry.get("description"), 800)
-    text = re.sub(r"\s*[\u2014\u2013]\s*", ": ", text).replace("`", "")
+    text = re.sub(r"(\d)\s*[\u2014\u2013]\s*(\d)", r"\1 to \2", text)    # "2-7 steps" stays a range
+    text = re.sub(r"\s+[\u2014\u2013]\s+", ": ", text)                       # " - " between clauses
+    text = re.sub(r"[\u2014\u2013]", "-", text).replace("`", "")
     text = _LABEL_PREFIX.sub("", text)          # "Spotify for Hermes: seven tools..." -> "seven tools..."
     if text:
         text = text[0].upper() + text[1:]
