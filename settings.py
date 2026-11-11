@@ -66,27 +66,52 @@ def is_sensitive(key: str, plugin: Optional[str] = None) -> bool:
     return not can_suggest(key, plugin)
 
 
-def mismatches(issues: Iterable[Any], config: dict[str, Any]) -> list[dict[str, str]]:
-    """Each warning that, read against your config, applies to you."""
+# The key name comes from third-party catalog text, so a warning could name a secret on purpose
+# ("needs model.api_key: x"). A key whose last part looks like a credential is never read at all.
+_SECRET_KEY = re.compile(r"(?:key|keys|token|tokens|secret|secrets|password|passwd|passphrase|credential|"
+                         r"credentials|cookie|cookies|_env)$", re.IGNORECASE)
+
+
+def looks_secret(key: str) -> bool:
+    return bool(_SECRET_KEY.search(key.rsplit(".", 1)[-1]))
+
+
+def can_show_value(key: str, plugin: Optional[str] = None) -> bool:
+    """Your own value is shown only for the plugin's own settings and the few harmless ones."""
+    return can_suggest(key, plugin) and not looks_secret(key)
+
+
+def mismatches(issues: Iterable[Any], config: dict[str, Any],
+               plugin: Optional[str] = None) -> list[dict[str, str]]:
+    """Each warning that, read against your config, applies to you.
+
+    Results go into tool output and the weekly chat note, so your value for a setting appears
+    only when can_show_value() allows it; otherwise the result says only whether it differs.
+    """
     found = []
     for text in issue_texts(issues):
         for m in _PAIR.finditer(text):
             key = m.group(1)
+            if looks_secret(key):
+                continue
             wanted_raw = m.group(2).strip("`'\".,;")  # printed as the plugin wrote it
             wanted = _norm(wanted_raw)                # compared loosely
             have_raw = lookup(config, key)
             if have_raw is None:
                 continue
             have = _norm(have_raw)
-            shown_have = str(have_raw).strip()[:60]
+            show = can_show_value(key, plugin)
+            shown_have = str(have_raw).strip()[:60] if show else ""
             before = text[max(0, m.start() - 40):m.start()]
             after = text[m.end():m.end() + 40]
             if _NEEDS.search(before) and have != wanted:
                 found.append({"key": key, "have": shown_have, "wanted": wanted_raw, "issue": text,
-                              "why": f"It needs {key}: {wanted_raw}. Yours is {shown_have}."})
+                              "why": (f"It needs {key}: {wanted_raw}. Yours is {shown_have}." if show
+                                      else f"It needs {key}: {wanted_raw}; yours differs.")})
             elif (_BREAKS.search(before) or _BAD_AFTER.search(after)) and have == wanted:
                 found.append({"key": key, "have": shown_have, "wanted": "", "issue": text,
-                              "why": f"It warns about {key}: {shown_have}, which is your setting."})
+                              "why": (f"It warns about {key}: {shown_have}, which is your setting." if show
+                                      else f"It warns about a value of {key} that matches your setting.")})
     seen, unique = set(), []
     for f in found:
         if (f["key"], f["issue"]) not in seen:

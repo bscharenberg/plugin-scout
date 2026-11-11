@@ -24,7 +24,8 @@ class MismatchTests(unittest.TestCase):
         found = settings.mismatches(SHIELD, HOST)
         self.assertEqual(len(found), 1)
         self.assertEqual(found[0]["wanted"], "in_process")
-        self.assertIn("Yours is host", found[0]["why"])
+        self.assertIn("yours differs", found[0]["why"])
+        self.assertNotIn("host", found[0]["why"])  # a core setting's value is never echoed
 
     def test_silent_when_your_setting_matches(self):
         self.assertEqual(settings.mismatches(SHIELD, IN_PROCESS), [])

@@ -253,7 +253,7 @@ def check(
         if prof["installed_sha"] and prof["catalog_sha"] and prof["installed_sha"] != prof["catalog_sha"]:
             findings.append(_update_finding(prof))
         issues = settings.issue_texts(prof["known_issues"])
-        for mm in settings.mismatches(issues, config or {}):
+        for mm in settings.mismatches(issues, config or {}, plugin=prof.get("cmd")):
             guarded = settings.is_sensitive(mm["key"], prof.get("cmd"))
             if guarded:
                 fix = (f"Scout does not suggest changing {mm['key']}: it only suggests a plugin's own "

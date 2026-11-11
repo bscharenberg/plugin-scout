@@ -70,7 +70,9 @@ class RawSettingValues(unittest.TestCase):
         self.assertEqual(found[0]["wanted"], "edge-tts")
         found = settings.mismatches(["Needs model.default: Claude-Fable-5-2."], {"model": {"default": "x"}})
         self.assertEqual(found[0]["wanted"], "Claude-Fable-5-2")
-        self.assertIn("Yours is x.", found[0]["why"])
+        self.assertIn("yours differs", found[0]["why"])
+        found = settings.mismatches(["Needs web.cache_enabled: false."], {"web": {"cache_enabled": True}})
+        self.assertIn("Yours is True.", found[0]["why"])  # a harmless allowlisted setting may show it
 
     def test_a_reset_sentence_is_not_a_requirement(self):
         found = settings.mismatches(["If it breaks, reset web.cache_enabled: true and restart."],
@@ -200,6 +202,48 @@ class DuplicateInstall(unittest.TestCase):
         titles = [f["title"] for f in found]
         self.assertTrue(any("installed twice" in t for t in titles), titles)
 
+
+
+class ConfigValuesStayPrivate(unittest.TestCase):
+    """Catalog review, Nov 11: a known issue naming a secret key must not echo its value."""
+    SECRET = "sk-live-DO-NOT-LEAK-1234567890"
+
+    def _config(self):
+        return {"model": {"api_key": self.SECRET, "default": "my-private-model"},
+                "providers": {"openai": {"token": self.SECRET, "base_url_env": "MY_ENV"}},
+                "plugins": {"entries": {"p": {"mode": "fast", "auth_token": self.SECRET},
+                                        "other": {"mode": "slow"}}},
+                "web": {"cache_enabled": True}}
+
+    def test_secret_looking_keys_are_never_read(self):
+        issues = ["Needs model.api_key: abc to work.", "Requires providers.openai.token: xyz.",
+                  "Set providers.openai.base_url_env: X.", "Needs plugins.entries.p.auth_token: t.",
+                  "Breaks with model.api_key: " + self.SECRET + "."]
+        self.assertEqual(settings.mismatches(issues, self._config(), plugin="p"), [])
+
+    def test_core_and_other_plugins_values_are_not_shown(self):
+        found = settings.mismatches(["Needs model.default: gpt-x.", "Needs plugins.entries.other.mode: fast."],
+                                    self._config(), plugin="p")
+        text = json.dumps(found)
+        self.assertNotIn("my-private-model", text)
+        self.assertNotIn("slow", text)
+        self.assertTrue(all(f["have"] == "" for f in found))
+
+    def test_own_settings_and_safe_keys_show_values(self):
+        found = settings.mismatches(["Needs plugins.entries.p.mode: slow.", "Needs web.cache_enabled: false."],
+                                    self._config(), plugin="p")
+        self.assertEqual([f["have"] for f in found], ["fast", "True"])
+
+    def test_secret_never_reaches_tool_results_or_weekly_note(self):
+        entry = _entry(name="p", known_issues=["Needs model.api_key: abc.", "Needs model.default: gpt-x."])
+        plugin = {"name": "p", "catalog_name": "p", "command_name": "p", "enabled": True,
+                  "provides_tools": [], "provides_hooks": [], "provides_middleware": [], "installed_sha": None}
+        found = conflicts.check([plugin], {"p": entry}, config=self._config())
+        out = json.dumps(found) + report.conflicts_text(found, 1) + report.digest_text(
+            found, [], {"new": [], "updated": [], "removed": []}, "Nov 02", 10)
+        self.assertNotIn(self.SECRET, out)
+        self.assertNotIn("my-private-model", out)
+        self.assertIn("yours differs", out)
 
 @unittest.skipUnless(HAVE_PYYAML or HAVE_RUAMEL, "needs a YAML library (the CI YAML job installs them)")
 class YamlLoaders(unittest.TestCase):

@@ -381,7 +381,7 @@ def run_picks(ctx, ai_rank: bool = False, limit: int = 3) -> dict[str, Any]:
         picks = usage.diversify(pool, limit, prefer=stated)
     cfg, idx = _config(), catalog.index(cat)
     for p in picks:  # a pick that would not fully work on your setup says so up front
-        found = settings.mismatches((idx.get(p["name"]) or {}).get("known_issues") or [], cfg)
+        found = settings.mismatches((idx.get(p["name"]) or {}).get("known_issues") or [], cfg, plugin=p["name"])
         if found:
             p["heads_up"] = found[0]["why"]
     return {"profile": {k: profile.get(k) for k in ("sessions", "window_days", "topics")},
