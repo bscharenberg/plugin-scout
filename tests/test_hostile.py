@@ -132,10 +132,15 @@ class PromptTests(unittest.TestCase):
         idx = {"gate-a": a, "gate-b": b}
         plugs = [{"name": n, "catalog_name": n, "enabled": True, "provides_tools": [],
                   "provides_hooks": ["pre_tool_call"], "provides_middleware": []} for n in idx]
-        found = conflicts.verify_with_llm(conflicts.check(plugs, idx), idx, ask=lambda p: f"NO{ESC} harmless")
+        # A clean "SEPARATE" lowers the finding to a note, but it stays on the report.
+        found = conflicts.verify_with_llm(conflicts.check(plugs, idx), idx, ask=lambda p: "SEPARATE")
         text = report.conflicts_text(found, 2)
         self.assertIn("Gate A and Gate B", text)
-        self.assertIn("AI opinion: NO", text)
+        self.assertIn("AI opinion: likely separate", text)
+        # A reply with anything extra (here escape codes) is not the one word, so nothing changes.
+        found = conflicts.verify_with_llm(conflicts.check(plugs, idx), idx, ask=lambda p: f"SEPARATE{ESC}")
+        text = report.conflicts_text(found, 2)
+        self.assertIn("[CAUTION] Gate A and Gate B", text)
         self.assertTrue(_visible(text))
 
 
@@ -215,7 +220,7 @@ class NetworkAndFailureTests(unittest.TestCase):
         found = conflicts.check(plugs, idx)
         self.assertGreater(len([f for f in found if f["kind"] == "likely"]), conflicts.MAX_AI_CHECKS)
         calls = []
-        conflicts.verify_with_llm(found, idx, ask=lambda p: calls.append(p) or "YES real")
+        conflicts.verify_with_llm(found, idx, ask=lambda p: calls.append(p) or "CLASH")
         self.assertEqual(len(calls), conflicts.MAX_AI_CHECKS)
 
     def test_old_catalog_is_never_passed_off_as_current(self):

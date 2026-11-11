@@ -117,17 +117,19 @@
           (f.todo || []).length ? h("div", { className: "ps-finding-block" },
             h("span", { className: "ps-label" }, "What you can do"),
             h("ol", { className: "ps-todo" }, f.todo.map(function (step, j) {
-              var at = step.indexOf(": ");
+              var at = Math.max(step.lastIndexOf(": hermes "), step.lastIndexOf(": /scout"), step.lastIndexOf(": /memory"));
               var cmd = at > 0 ? step.slice(at + 2) : "";
-              var isCmd = /^(hermes |\/scout|\/memory)/.test(cmd);
+              var isCmd = at > 0;
               return h("li", { key: j }, isCmd ? [step.slice(0, at + 1) + " ", h("code", { key: "c" }, cmd)] : plain(step));
             }))) : null,
           h("details", { className: "ps-finding-why" },
             h("summary", null, "Why Scout flagged this"),
             f.evidence.map(function (e, j) { return h("p", { key: j }, plain(e)); })));
       }) : h("div", { className: "ps-row" },
-        h("span", { className: "ps-badge ps-tier-clear" }, "All clear"),
-        h("span", { className: "ps-desc" }, props.enabled ? "Nothing clashing, no settings problems." : "Nothing installed that could clash.")));
+        h("span", { className: "ps-badge ps-tier-clear" }, props.findings.length ? "Nothing serious" : "All clear"),
+        h("span", { className: "ps-desc" }, props.findings.length
+          ? plural(props.findings.length, "minor note") + ". Run /scout check in Hermes for details."
+          : props.enabled ? "Nothing clashing, no settings problems." : "Nothing installed that could clash.")));
   }
 
   function PluginScoutPage() {
@@ -161,7 +163,7 @@
       h("div", { className: "ps-stats" },
         h(Stat, { label: "Picks for you", value: String(data.picks.length), hint: plural(strongCount, "strong match") }),
         h(Stat, { label: "Catalog", value: (data.catalog_size || 0).toLocaleString(), hint: "plugins read" }),
-        h(Stat, { label: "Your setup", value: serious ? plural(serious, "item") : "All clear",
+        h(Stat, { label: "Your setup", value: serious ? plural(serious, "item") : data.findings.length ? plural(data.findings.length, "note") : "All clear",
                   hint: plural(data.enabled_plugins, "plugin") + " enabled" }),
         h(Stat, { label: "Signals", value: String(data.sessions), hint: "conversations read, last 30 days" }),
         h(Stat, { label: "Privacy", value: "Local", hint: "your messages never leave" })),

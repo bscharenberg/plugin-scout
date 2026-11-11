@@ -32,11 +32,11 @@ def _core():
     never sees a half-built module and a failed import is retried instead of cached.
     """
     mod = sys.modules.get(_PKG)
-    if mod is not None and getattr(mod, "run_picks", None):
+    if mod is not None and getattr(mod, "register", None):  # defined last: the module is complete
         return mod
     with _LOAD_LOCK:
         mod = sys.modules.get(_PKG)
-        if mod is not None and getattr(mod, "run_picks", None):
+        if mod is not None and getattr(mod, "register", None):
             return mod
         spec = importlib.util.spec_from_file_location(_PKG, _ROOT / "__init__.py",
                                                       submodule_search_locations=[str(_ROOT)])
@@ -90,7 +90,7 @@ def _overview() -> dict[str, Any]:
     core, ctx = _core(), _ctx()
     picked = core._safe(lambda: core.run_picks(ctx, limit=4))
     checked = core._safe(lambda: core.run_conflicts(ctx))
-    profile = core._profile(ctx) if "error" not in picked else {"topics": {}, "sessions": 0}
+    profile = picked.get("profile") or {"topics": {}, "sessions": 0}  # already read once by run_picks
     return {
         "picks": picked.get("picks", []),
         "error": picked.get("error") or checked.get("error"),

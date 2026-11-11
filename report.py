@@ -63,7 +63,7 @@ def _pick_lines(p: dict[str, Any]) -> list[str]:
     if reasons:
         lines.append("  For you: " + ". ".join(reasons[:2]) + ".")
     else:
-        lines.append(f"  For you: {p['evidence']}")
+        lines.append(f"  For you: {p.get('evidence') or 'see /scout profile'}")
     if p.get("before_install"):
         lines.append(f"  Before you install: {p['before_install']}")
     if p.get("heads_up"):
@@ -108,8 +108,14 @@ def overview_text(picks: list[dict[str, Any]], profile: dict[str, Any],
         for f in clashes[:3]:
             lines += ["  " + line for line in _finding_lines(f, evidence=3)]
     if not heads and not clashes:
-        lines += ["", "No other plugins enabled yet, so nothing to check." if plugin_count == 0 else
-                  f"Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear."]
+        notes = [f for f in findings if f["kind"] != "pulled"]
+        if plugin_count == 0:
+            lines += ["", "No other plugins enabled yet, so nothing to check."]
+        elif notes:
+            lines += ["", f"Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: nothing serious; "
+                      f"{len(notes)} note{'' if len(notes) == 1 else 's'}. Details: /scout check"]
+        else:
+            lines += ["", f"Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear."]
     if picks and (profile.get("sessions") or 0) < THIN_HISTORY:
         lines += ["", COLD_START_TIP]
     lines += ["", "More: /scout profile (what I know about you), /scout check, /scout week, /scout help"]
@@ -229,8 +235,8 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
             f"{len(changes['removed'])} removed ({catalog_size} plugins listed).")
     if not to_act and not relevant:
         if total:
-            return f"Plugin Scout, this week: all clear. Nothing new fits how you use Hermes.\n{rest}"
-        return f"Plugin Scout, this week: all clear. No catalog changes since {since}."
+            return f"Plugin Scout, this week: nothing needs you. Nothing new fits how you use Hermes.\n{rest}"
+        return f"Plugin Scout, this week: nothing needs you. No catalog changes since {since}."
     lines = ["Plugin Scout, this week:"]
 
     def add(f):
@@ -245,7 +251,7 @@ def digest_text(findings: list[dict[str, Any]], relevant: list[dict[str, Any]],
         lines.append(f"[NEW FOR YOU] {p['title']}")
         if p.get("what"):
             lines.append(f"  - {p['what']}")
-        lines.append("  - " + (". ".join((p.get("for_you") or [p["evidence"]])[:2]).rstrip(".") + "."))
+        lines.append("  - " + (". ".join((p.get("for_you") or [p.get("evidence") or "see /scout profile"])[:2]).rstrip(".") + "."))
         if p.get("before_install"):
             lines.append(f"  - Before you install: {p['before_install']}")
         lines.append(f"  - Install: {p['install']}   Not for you: /scout dismiss {p['name']}")
@@ -271,6 +277,9 @@ def welcome_text(findings: list[dict[str, Any]], plugin_count: int, profile: dic
         for f in serious[:3]:
             lines.append(f"   [{_LABEL[f['kind']]}] {f['title']}")
         lines.append("   Details: /scout check")
+    elif plugin_count and findings:
+        lines.append(f"   Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: nothing serious; "
+                     f"{len(findings)} note{'' if len(findings) == 1 else 's'}. Details: /scout check")
     elif plugin_count:
         lines.append(f"   Your {plugin_count} enabled plugin{'' if plugin_count == 1 else 's'}: all clear.")
     else:

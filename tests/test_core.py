@@ -196,7 +196,7 @@ class ConflictTests(unittest.TestCase):
 
     def test_llm_no_downgrades_to_overlap_and_keeps_evidence(self):
         found = conflicts.check([_plugin("memory-shield"), _plugin("provenance-gate")], self.idx)
-        found = conflicts.verify_with_llm(found, self.idx, ask=lambda prompt: "NO. They watch different things.")
+        found = conflicts.verify_with_llm(found, self.idx, ask=lambda prompt: "SEPARATE")
         target = [f for f in found if f["plugins"] == ["memory-shield", "provenance-gate"]][0]
         self.assertEqual(target["kind"], "overlap")
         self.assertTrue(any(e.startswith("AI opinion:") for e in target["evidence"]))

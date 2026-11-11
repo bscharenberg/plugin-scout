@@ -16,6 +16,7 @@ the door, before any other code sees it:
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any, Optional
 
 # C0 and C1 controls (includes ESC, which starts terminal escape codes) and DEL
@@ -23,10 +24,14 @@ _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")  # line breaks become
 # zero-width characters, word joiner, byte order mark, and bidirectional overrides
 _INVISIBLE = re.compile(
     r"[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e"
-    r"\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\U000e0000-\U000e007f\U000e0100-\U000e01ef]")
+    r"\u2060-\u206f\u2800\u3164\ufe00-\ufe0f\ufeff\uffa0\ufffc\U000e0000-\U000e007f\U000e0100-\U000e01ef]")
 # soft hyphen, combining grapheme joiner, Arabic letter mark, Hangul fillers, Mongolian
 # variation selectors, zero-width and bidirectional controls, word joiner, variation
 # selectors, byte order mark, and Unicode tag characters (which can hide text a model reads)
+# By Unicode category, so nothing hand-listed can be missed: format characters (Cf, every
+# invisible control such as tag characters and bidi marks), surrogates (Cs, which cannot be
+# encoded and would break output) and private-use characters (Co, no visible meaning).
+_DROP_CATEGORIES = {"Cf", "Cs", "Co"}
 _SPACES = re.compile(r"\s+")
 
 NAME = re.compile(r"^[a-z0-9_-]{1,64}$")          # the catalog's own rule for keys
@@ -49,6 +54,7 @@ def clean(value: Any, limit: int = 500) -> str:
         return ""
     text = str(value)[: limit * 4 + 64]  # bound the work before cleaning
     text = _INVISIBLE.sub("", _CONTROL.sub(" ", text))
+    text = "".join(c for c in text if c < "\u0080" or unicodedata.category(c) not in _DROP_CATEGORIES)
     text = _SPACES.sub(" ", text).strip()
     if len(text) > limit:
         text = text[: max(0, limit - 3)].rstrip() + "..."

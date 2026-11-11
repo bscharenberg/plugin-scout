@@ -22,16 +22,24 @@ _LONG_TLDS = {"com", "net", "org", "edu", "gov", "mil", "int", "info", "biz", "a
               "tech", "xyz", "site", "online", "store", "live", "run", "page", "tools", "space", "website",
               "email", "chat", "group", "digital", "network", "systems", "software", "solutions",
               "services", "agency", "studio", "design", "news", "blog", "media", "date", "codes", "link"}
-_FILE_ENDINGS = {"md", "py", "js", "ts", "db", "rs", "cs", "hs", "pl", "rb", "pm", "go"}
+_LONG_TLDS |= {"top", "club", "shop", "icu", "vip", "work", "today", "world", "life", "pro", "fun", "lol",
+               "wtf", "ninja", "rocks", "zone", "host", "cyou", "buzz", "click", "monster", "bond", "sbs"}
+# Endings that are also common file names (USER.md, setup.sh, main.py). They count as a domain
+# only in a full host name with at least three parts, such as files.evil.pl.
+_FILE_ENDINGS = {"md", "py", "js", "ts", "db", "rs", "cs", "hs", "pl", "rb", "pm", "go", "sh"}
+_IP = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b")
 _HOST = r"(?:[a-z0-9-]{1,63}\.){1,6}[a-z]{2,24}"  # bounded: no slow backtracking on long dotted text
 _DOMAIN = re.compile(r"\b(" + _HOST + r")\b", re.IGNORECASE)
 _SENDS = re.compile(r"\bsends?\s+((?:your\s+)?[A-Za-z0-9 ,_/\-]{3,70}?)\s+to\s+(" + _HOST + r")\b", re.IGNORECASE)
 
 
 def _is_domain(host: str) -> bool:
-    tld = host.lower().rsplit(".", 1)[-1]
+    parts = host.lower().split(".")
+    tld = parts[-1]
+    if tld in _FILE_ENDINGS:
+        return len(parts) >= 3
     if len(tld) == 2:
-        return tld not in _FILE_ENDINGS
+        return True
     return tld in _LONG_TLDS
 _LOCAL = re.compile(r"\bno network\b|\bmakes no network\b|\bzero network\b|\blocal[- ]only\b|"
                     r"\bno (?:outbound|external) (?:calls|requests)\b|\bnever leaves? (?:your|the) (?:machine|computer)\b",
@@ -52,11 +60,17 @@ _FACTS = [  # (pattern in the disclosure, plain words for you), most serious fir
      "downloads extra software"),
     (re.compile(r"\bsubmits? forms\b|\bfill\w*,? (?:click and )?submit\b|\bfill\w* and submit\w*\b", re.IGNORECASE),
      "can fill in and submit web forms"),
+    (re.compile(r"\b(?:uploads?|posts?|transmits?|exfiltrat\w*|sends?|syncs?|copies)\b[^.;:]{0,40}?"
+                r"\b(?:your|the user's|user)\b[^.;:]{0,25}?\b(?:files?|notes?|data|messages?|conversations?|"
+                r"history|documents?|photos?|memory|memories|contacts)\b", re.IGNORECASE),
+     "sends your data off your computer"),
     (re.compile(r"\bbilled\b|\bbillable\b|\bspend\w*\b[^.;]{0,20}\bcredits?\b|\bcredits?\b|\bquota\b|\bpay per\b",
                 re.IGNORECASE), "can cost money or use up credits"),
 ]
 MAX_FACTS = 3
-_NEGATION = re.compile(r"\b(?:no|never|not|cannot|without|zero|nor|blocks?|refuses?)\b|n't\b", re.IGNORECASE)
+# A negation word on its own: "no-frills" and "not only" are not negations.
+_NEGATION = re.compile(r"\b(?:no|never|not(?!\s+only)|cannot|without|zero|nor|blocks?|refuses?)\b(?!-)|n't\b",
+                       re.IGNORECASE)
 
 
 # Words that start a new statement. "Without extra setup it moves real money": the "it" means the
@@ -77,7 +91,12 @@ def _stated(disc: str, match: "re.Match[str]") -> bool:
     if not negations:
         return True
     between = before[negations[-1].end():]
-    return bool(_RESTART.search(between))
+    # a colon or bracket starts a new statement too ("Never fails: reads your history")
+    return bool(_RESTART.search(between)) or any(c in between for c in ":()")
+
+
+# Facts whose own sentence can carry the negation ("never uploads your files")
+_SELF_NEGATING = {"sends your data off your computer"}
 
 
 def _first_upper(text: str) -> str:
@@ -102,13 +121,15 @@ def before_you_install(entry: dict[str, Any]) -> str:
             what = sanitize.clean(sent.group(1), 70).rstrip(",")
             facts.append(f"sends {what} to {sent.group(2).lower()}")
         else:
-            domains = list(dict.fromkeys(d.lower() for d in _DOMAIN.findall(disc)
-                                         if _is_domain(d) and not d.lower().endswith("nousresearch.com")))
+            domains = list(dict.fromkeys(
+                [d.lower() for d in _DOMAIN.findall(disc) if _is_domain(d) and not d.lower().endswith("nousresearch.com")]
+                + _IP.findall(disc)))  # a raw IP address is a destination too
             if domains:
                 more = f" and {len(domains) - 1} more" if len(domains) > 1 else ""
                 facts.append(f"contacts {domains[0]}{more}")
         for pattern, words in _FACTS:
-            if words not in facts and any(_stated(disc, m) for m in pattern.finditer(disc)):
+            if words not in facts and any(_stated(disc, m) and not (words in _SELF_NEGATING and _NEGATION.search(m.group(0)))
+                                          for m in pattern.finditer(disc)):
                 facts.append(words)
     if keys and not any(k in " ".join(facts) for k in keys):
         facts.append(f"needs your {keys[0]}" + (f" and {len(keys) - 1} more key" + ("s" if len(keys) > 2 else "")

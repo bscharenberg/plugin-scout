@@ -113,7 +113,7 @@ Scout counts **conversations, not words.** A topic that comes up in three chats 
 
 **Settings** come from each plugin's own known issues. Many name a Hermes setting ("Needs plugins.isolation: in_process", "Set web.cache_enabled: false"). Plugin Scout reads those settings in your config and speaks up only when the warning applies to you, on installed plugins and on picks alike. Tested against every plugin in the catalog on a typical setup, it flagged only the one warning that truly applied.
 
-**Clashes** are uncommon: only a few dozen catalog plugins step in on Hermes's built-in tools, so this mostly matters once you stack guard or safety plugins, most often on `terminal` and `write_file`. They come from what each plugin declares (its tools, hooks and middleware) plus its catalog description. Many plugins use the same hooks, so a shared hook alone is not a conflict. A caution needs both a shared tool-level hook and the same tool named in both descriptions. These are labelled "likely", not proven. `/scout ai` asks your model for a second opinion and downgrades the ones it judges harmless.
+**Clashes** are uncommon: only a few dozen catalog plugins step in on Hermes's built-in tools, so this mostly matters once you stack guard or safety plugins, most often on `terminal` and `write_file`. They come from what each plugin declares (its tools, hooks and middleware) plus its catalog description. Many plugins use the same hooks, so a shared hook alone is not a conflict. A caution needs both a shared tool-level hook and the same tool named in both descriptions. These are labelled "likely", not proven. `/scout check ai` asks your model for a one-word second opinion and downgrades the ones it judges separate.
 
 ## Privacy and what it touches
 
@@ -138,7 +138,7 @@ What a careful user would want to know before installing:
 
 ## Security
 
-Catalog text, other plugins' manifests and model replies are treated as untrusted: cleaned of escape codes and invisible characters, length-capped, and fenced off as data in AI prompts. The model can add an opinion but can never hide a finding. See [SECURITY.md](SECURITY.md) for the threat model and how to report a problem.
+Catalog text, other plugins' manifests and model replies are treated as untrusted: cleaned of escape codes and invisible characters, length-capped, and fenced off as data in AI prompts. The model can add a one-word opinion but can never hide a finding, and its own words are never shown. Scout only suggests changing a plugin's own settings or a few harmless ones, never core Hermes settings. See [SECURITY.md](SECURITY.md) for the threat model and how to report a problem.
 
 **Use in shared chats:** Scout reads your history across all your chats. If your Hermes answers in a shared group chat, don't enable Scout's tools there, since anyone in the chat could ask for your picks or profile.
 

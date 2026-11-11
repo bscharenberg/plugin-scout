@@ -7,6 +7,7 @@ No network or disk work happens during register(); everything runs on demand.
 from __future__ import annotations
 
 import json
+import re
 import logging
 import time
 from datetime import datetime
@@ -170,8 +171,17 @@ def _config() -> dict[str, Any]:
         return {}
 
 
+_LOADED: dict[str, Any] = {}
+_REUSE_SECONDS = 30  # one command reads the catalog several times; load it once
+
+
 def _load_catalog(force: bool = False) -> dict[str, Any]:
-    return catalog.CatalogStore(_data_dir()).load(force=force)
+    now = time.time()
+    if not force and _LOADED and now - _LOADED["at"] < _REUSE_SECONDS:
+        return _LOADED["result"]
+    result = catalog.CatalogStore(_data_dir()).load(force=force)
+    _LOADED.update(at=now, result=result)
+    return result
 
 
 def _installed() -> list[dict[str, Any]]:
@@ -321,7 +331,7 @@ def run_interests(ctx, raw: str) -> dict[str, Any]:
     items = [i for i in (sanitize.clean(x, 40).lower() for x in text.replace(";", ",").split(",")) if i]
     if len(items) == 1 and " " in items[0] and len(items[0].split()) > 3:
         items = items[0].split()
-    if items and all(i.isdigit() for i in items):  # answers to the onboarding question
+    if items and all(_CHOICE.fullmatch(i) for i in items):  # answers to the onboarding question
         items = usage.job_words(int(i) for i in items)
         if not items:
             return {"interests": ctx.state.get("interests") or [],
@@ -422,6 +432,9 @@ def run_overview(ctx) -> dict[str, Any]:
 MAX_DISMISSED = 200
 
 
+_CHOICE = re.compile(r"[0-9]{1,2}")  # ASCII digits only; isdigit() also accepts other scripts
+
+
 def run_dismiss(ctx, name: str) -> dict[str, Any]:
     raw = name.strip().lower() if isinstance(name, str) else ""
     if not raw:
@@ -429,7 +442,13 @@ def run_dismiss(ctx, name: str) -> dict[str, Any]:
     valid = sanitize.name(raw)
     if not valid:  # only real catalog-style names are stored, never arbitrary text
         return {"text": "Plugin Scout: that isn't a plugin name. Use the name shown in the install command."}
-    dismissed = list(dict.fromkeys((ctx.state.get("dismissed") or []) + [valid]))[-MAX_DISMISSED:]
+    current = list(dict.fromkeys(ctx.state.get("dismissed") or []))
+    if valid in current:
+        return {"dismissed": current, "text": f"Plugin Scout: {valid} is already skipped."}
+    if len(current) >= MAX_DISMISSED:
+        return {"dismissed": current, "text": (
+            f"Plugin Scout: your skip list is full ({MAX_DISMISSED}). Nothing was changed.")}
+    dismissed = current + [valid]
     ctx.state.set("dismissed", dismissed)
     return {"dismissed": dismissed, "text": f"Plugin Scout: won't suggest {valid} again."}
 

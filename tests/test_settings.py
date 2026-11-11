@@ -59,7 +59,7 @@ class FindingTests(unittest.TestCase):
         self.assertIn("[YOUR SETTINGS] Memory Shield may not fully work with your settings", text)
         # plugins.isolation guards the user, so Scout never hands out a command to change it
         self.assertNotIn("hermes config set", text)
-        self.assertIn("is a security setting, so Scout does not suggest changing it", text)
+        self.assertIn("Scout does not suggest changing plugins.isolation", text)
         self.assertEqual([f for f in conflicts.check([plugin], catalog.index(FIXTURE), config=IN_PROCESS)
                           if f["kind"] == "settings"], [])
 

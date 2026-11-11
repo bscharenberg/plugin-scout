@@ -24,6 +24,8 @@ CATALOG_URL = "https://hermes-agent.nousresearch.com/docs/api/plugin-catalog.jso
 CACHE_TTL_SECONDS = 6 * 60 * 60          # same window Hermes uses for its own copy
 MAX_BYTES = 20 * 1024 * 1024             # refuse anything absurdly large
 MAX_ENTRIES = 20000                      # the catalog has about 1,600 today
+RETRY_AFTER_SECONDS = 600                # after a failed download, use the cached copy for 10 minutes
+_FAILED_UNTIL: dict[str, float] = {}     # cache path -> time before which we don't try again
 USER_AGENT = "plugin-scout-hermes-plugin"
 
 # Fields kept in a weekly snapshot. Small enough to keep many weeks in state.
@@ -83,7 +85,7 @@ def validate(data: Any) -> dict[str, Any]:
     # Catalog text is written by third parties: keep only valid names and clean every field.
     entries = [e for e in map(sanitize.catalog_entry, data["entries"][:MAX_ENTRIES]) if e]
     raw_removed = data.get("removed") if isinstance(data.get("removed"), list) else []
-    removed = [r for r in map(sanitize.removed_entry, raw_removed) if r]
+    removed = [r for r in map(sanitize.removed_entry, raw_removed[:MAX_ENTRIES]) if r]
     return {"generated_at": sanitize.clean(data.get("generated_at"), 40), "entries": entries,
             "removed": removed}
 
@@ -129,12 +131,19 @@ class CatalogStore:
         cached = self._read_cache()
         if cached and not force and self._now() - cached["fetched_at"] < self._ttl:
             return {**cached, "source": "cache", "stale": False}
+        key = str(self.cache_path)
+        if not force and self._now() < _FAILED_UNTIL.get(key, 0):  # offline recently: don't wait again
+            if cached:
+                return {**cached, "source": "cache", "stale": True}
+            raise CatalogError("could not reach the plugin catalog")
         try:
             catalog = self._fetch()
         except CatalogError:
+            _FAILED_UNTIL[key] = self._now() + RETRY_AFTER_SECONDS
             if cached:
                 return {**cached, "source": "cache", "stale": True}
             raise
+        _FAILED_UNTIL.pop(key, None)
         self._write_cache(catalog)
         return {"catalog": catalog, "fetched_at": self._now(), "source": "network", "stale": False}
 

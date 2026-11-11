@@ -73,11 +73,35 @@ class DashboardApiTests(unittest.TestCase):
         self.assertEqual(STATE.get("dismissed"), ["spotify"])
 
     def test_page_still_renders_without_catalog(self):
-        out = self.api.overview()  # outside Hermes the catalog cannot load
+        core = self.api._core()
+        real = core._load_catalog
+
+        def down(force=False):
+            raise core.catalog.CatalogError("could not reach the plugin catalog")
+
+        core._load_catalog = down
+        try:
+            out = self.api.overview()
+        finally:
+            core._load_catalog = real
         self.assertEqual(out["picks"], [])
-        self.assertTrue(out["error"])
+        self.assertEqual(out["error"], "could not reach the plugin catalog")
         self.assertEqual(len(out["jobs"]), 10)
         json.dumps(out)  # everything the page gets is plain JSON
+
+    def test_page_has_no_error_when_catalog_loads(self):
+        core = self.api._core()
+        real, real_installed, real_profile = core._load_catalog, core._installed, core._profile
+        core._load_catalog = lambda force=False: {"catalog": {"entries": [], "removed": []},
+                                                  "stale": False, "fetched_at": 0, "source": "cache"}
+        core._installed = lambda: []
+        core._profile = lambda ctx: {"topics": {}, "sessions": 0, "tools": {}}
+        try:
+            out = self.api.overview()
+        finally:
+            core._load_catalog, core._installed, core._profile = real, real_installed, real_profile
+        self.assertIsNone(out["error"])
+        json.dumps(out)
 
 
 class DashboardFilesTests(unittest.TestCase):

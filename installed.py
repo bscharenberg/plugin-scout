@@ -8,6 +8,7 @@ from config. Never imports or runs another plugin's code.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
@@ -28,6 +29,11 @@ def _parse_manifest_text(text: str) -> dict[str, Any]:
     handles top-level scalars and block or inline lists, which is all a
     plugin.yaml needs for these fields.
     """
+    if _ALIASES.search(text):
+        # Anchors, aliases and merge keys can expand exponentially inside any YAML library
+        # (a "billion laughs" or merge-key bomb). A plugin manifest never needs them, so such
+        # a file is read with the minimal reader, which cannot expand anything.
+        return _yaml_minimal(text)
     for loader in (_yaml_pyyaml, _yaml_ruamel):
         data = loader(text)
         if isinstance(data, dict):
@@ -35,10 +41,15 @@ def _parse_manifest_text(text: str) -> dict[str, Any]:
     return _yaml_minimal(text)
 
 
+# "&name" (anchor), "*name" (alias) or "<<:" (merge key), anywhere a YAML token can start.
+# A linear scan of the raw text, run before any YAML library sees it.
+_ALIASES = re.compile(r"(?:^|[\s\[\]{},:-])[&*][A-Za-z0-9_.-]|<<\s*:")
+
+
 def _yaml_pyyaml(text: str) -> Optional[dict]:
     try:
         import yaml  # type: ignore
-        return yaml.safe_load(text)
+        return yaml.load(text, Loader=yaml.BaseLoader)  # safe, and every value stays text (1.10, not 1.1)
     except Exception:
         return None
 
@@ -46,7 +57,7 @@ def _yaml_pyyaml(text: str) -> Optional[dict]:
 def _yaml_ruamel(text: str) -> Optional[dict]:
     try:
         from ruamel.yaml import YAML  # type: ignore
-        return YAML(typ="safe").load(text)
+        return YAML(typ="base").load(text)  # safe, and every value stays text
     except Exception:
         return None
 
@@ -94,15 +105,16 @@ def read_manifest(plugin_dir: Path) -> Optional[dict[str, Any]]:
     if not isinstance(data, dict):
         return None
     caps = data.get("capabilities") if isinstance(data.get("capabilities"), dict) else {}
-    # A name ends up in suggested commands, so it must follow the catalog's own rule. Anything
-    # else (spaces, shell syntax, escape codes, a nested structure) means we skip the plugin.
+    # Every plugin stays in the checks, whatever its name, so an odd name cannot hide it.
+    # Only a name that follows the catalog's own rule may appear in a suggested command.
     raw_name = data.get("name") if isinstance(data.get("name"), str) else plugin_dir.name
-    name = sanitize.name(raw_name.strip()) or sanitize.name(plugin_dir.name)
-    if not name:
-        return None
+    shown = sanitize.clean(raw_name, 64) or sanitize.clean(plugin_dir.name, 64) or "unnamed plugin"
+    command_name = sanitize.name(raw_name.strip()) or sanitize.name(plugin_dir.name)
     version = data.get("version")
     result = {
-        "name": name,
+        "name": command_name or shown,
+        "command_name": command_name,
+        "match_names": sorted({shown, raw_name.strip()[:64], plugin_dir.name}),
         "version": sanitize.clean(version, 64) if isinstance(version, (str, int, float)) else "",
         "folder": sanitize.clean(plugin_dir.name, 64),
     }
@@ -202,7 +214,8 @@ def installed_plugins(plugins_dir: Path, enabled: Iterable[str]) -> list[dict[st
             continue
         rel = str(folder.relative_to(plugins_dir))
         row = sidecar.get(rel) or sidecar.get(folder.name) or sidecar.get(manifest["name"]) or {}
-        manifest["enabled"] = bool({manifest["name"], folder.name, rel} & enabled_set)
+        names = {manifest["name"], folder.name, rel, *manifest.pop("match_names", [])}
+        manifest["enabled"] = bool(names & enabled_set)
         manifest["installed_sha"] = _installed_sha(row)
         manifest["catalog_name"] = _catalog_name(row, manifest["name"])
         found.append(manifest)

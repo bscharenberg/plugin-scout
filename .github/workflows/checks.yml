@@ -25,6 +25,24 @@ jobs:
       - name: Tests (standard library only, including hostile-input tests)
         run: python -I -m unittest discover -s tests -v
 
+  # Hermes ships a YAML library, so manifest reading is also tested with each one installed.
+  yaml-libraries:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        library: ["pyyaml==6.0.2", "ruamel.yaml==0.18.16"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.13"
+      - name: Install one pinned YAML library
+        run: python -m pip install --no-deps "${{ matrix.library }}"
+      - name: Tests with that library (alias and merge-key bombs, number-like values)
+        run: python -I -m unittest discover -s tests -v
+
   hygiene:
     runs-on: ubuntu-latest
     steps:

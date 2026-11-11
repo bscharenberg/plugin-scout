@@ -53,7 +53,7 @@ class RelevantNewTests(unittest.TestCase):
 
 class DigestTextTests(unittest.TestCase):
     def test_quiet_week(self):
-        self.assertIn("all clear. No catalog changes",
+        self.assertIn("nothing needs you. No catalog changes",
                       report.digest_text([], [], NO_CHANGES, "Nov 02", 1063))
 
     def test_busy_catalog_but_nothing_for_you_is_one_short_note(self):
