@@ -206,7 +206,7 @@ class DuplicateInstall(unittest.TestCase):
 
 class ConfigValuesStayPrivate(unittest.TestCase):
     """Catalog review, Nov 11: a known issue naming a secret key must not echo its value."""
-    SECRET = "sk-live-DO-NOT-LEAK-1234567890"
+    SECRET = "FAKE-SECRET-DO-NOT-LEAK-42"
 
     def _config(self):
         return {"model": {"api_key": self.SECRET, "default": "my-private-model"},
