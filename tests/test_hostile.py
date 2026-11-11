@@ -135,7 +135,7 @@ class PromptTests(unittest.TestCase):
         found = conflicts.verify_with_llm(conflicts.check(plugs, idx), idx, ask=lambda p: f"NO{ESC} harmless")
         text = report.conflicts_text(found, 2)
         self.assertIn("Gate A and Gate B", text)
-        self.assertIn("AI check: NO", text)
+        self.assertIn("AI opinion: NO", text)
         self.assertTrue(_visible(text))
 
 

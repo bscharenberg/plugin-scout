@@ -8,6 +8,8 @@ Nous Research. Everything else works from the local cache.
 from __future__ import annotations
 
 import json
+import os
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -21,6 +23,7 @@ except ImportError:  # loaded as a plain module (tests)
 CATALOG_URL = "https://hermes-agent.nousresearch.com/docs/api/plugin-catalog.json"
 CACHE_TTL_SECONDS = 6 * 60 * 60          # same window Hermes uses for its own copy
 MAX_BYTES = 20 * 1024 * 1024             # refuse anything absurdly large
+MAX_ENTRIES = 20000                      # the catalog has about 1,600 today
 USER_AGENT = "plugin-scout-hermes-plugin"
 
 # Fields kept in a weekly snapshot. Small enough to keep many weeks in state.
@@ -78,7 +81,7 @@ def validate(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict) or not isinstance(data.get("entries"), list):
         raise CatalogError("plugin catalog has an unexpected shape")
     # Catalog text is written by third parties: keep only valid names and clean every field.
-    entries = [e for e in map(sanitize.catalog_entry, data["entries"]) if e]
+    entries = [e for e in map(sanitize.catalog_entry, data["entries"][:MAX_ENTRIES]) if e]
     raw_removed = data.get("removed") if isinstance(data.get("removed"), list) else []
     removed = [r for r in map(sanitize.removed_entry, raw_removed) if r]
     return {"generated_at": sanitize.clean(data.get("generated_at"), 40), "entries": entries,
@@ -103,13 +106,16 @@ class CatalogStore:
     def _read_cache(self) -> Optional[dict[str, Any]]:
         try:
             blob = json.loads(self.cache_path.read_text(encoding="utf-8"))
-            return {"fetched_at": float(blob["fetched_at"]), "catalog": validate(blob["catalog"])}
+            fetched_at = float(blob["fetched_at"])
+            if not (0 < fetched_at <= self._now() + 60):  # a time in the future would look fresh forever
+                return None
+            return {"fetched_at": fetched_at, "catalog": validate(blob["catalog"])}
         except Exception:
             return None
 
     def _write_cache(self, catalog: dict[str, Any]) -> None:
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = self.cache_path.with_suffix(".tmp")
+        tmp = self.cache_path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")  # no shared temp name
         tmp.write_text(json.dumps({"fetched_at": self._now(), "catalog": catalog}), encoding="utf-8")
         tmp.replace(self.cache_path)  # atomic on the same filesystem
 

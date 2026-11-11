@@ -7,7 +7,9 @@ dismissed picks, both kept in Scout's own plugin state. Nothing here installs an
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
+import threading
 import types
 from pathlib import Path
 from typing import Any
@@ -19,16 +21,33 @@ _ROOT = Path(__file__).resolve().parent.parent
 _PKG = "plugin_scout_dashboard_core"
 
 
+_LOAD_LOCK = threading.Lock()
+_JOB = re.compile(r"[0-9]{1,2}")
+
+
 def _core():
-    """The plugin package itself, loaded once (its register() is not called here)."""
+    """The plugin package itself, loaded once (its register() is not called here).
+
+    Loaded under a lock, and only published once it imported fully, so a concurrent first request
+    never sees a half-built module and a failed import is retried instead of cached.
+    """
     mod = sys.modules.get(_PKG)
-    if mod is None:
+    if mod is not None and getattr(mod, "run_picks", None):
+        return mod
+    with _LOAD_LOCK:
+        mod = sys.modules.get(_PKG)
+        if mod is not None and getattr(mod, "run_picks", None):
+            return mod
         spec = importlib.util.spec_from_file_location(_PKG, _ROOT / "__init__.py",
                                                       submodule_search_locations=[str(_ROOT)])
         mod = importlib.util.module_from_spec(spec)
-        sys.modules[_PKG] = mod
-        spec.loader.exec_module(mod)
-    return mod
+        sys.modules[_PKG] = mod  # its own relative imports need this during loading
+        try:
+            spec.loader.exec_module(mod)
+        except Exception:
+            sys.modules.pop(_PKG, None)
+            raise
+        return mod
 
 
 def _ctx():
@@ -106,13 +125,13 @@ def set_interests(body: dict):
     if body.get("clear"):
         core.run_interests(ctx, "clear")
     elif isinstance(body.get("jobs"), list):  # the page's choice buttons replace earlier answers
-        jobs = [int(j) for j in body["jobs"] if str(j).isdigit() and 1 <= int(j) <= len(core.usage.JOBS)]
+        jobs = [int(j) for j in body["jobs"][:20]
+                if isinstance(j, (int, str)) and not isinstance(j, bool) and _JOB.fullmatch(str(j))
+                and 1 <= int(j) <= len(core.usage.JOBS)]
         core.run_interests(ctx, "clear")
         if jobs:
             core.run_interests(ctx, ", ".join(str(j) for j in jobs))
-    else:
-        items = [str(i) for i in (body.get("items") or []) if str(i).strip()][:40]
-        core.run_interests(ctx, ", ".join(items))
+    # Nothing else is accepted: the page only ever sends choice numbers or a clear.
     return _overview()
 
 

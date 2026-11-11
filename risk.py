@@ -16,10 +16,23 @@ try:
 except ImportError:  # loaded as a plain module (tests)
     import sanitize
 
-_TLDS = r"(?:com|io|ai|dev|net|org|app|co|sh|cloud|so|xyz|tech|gov|date|me|us|eu|de|uk|run|live)"
-_DOMAIN = re.compile(r"\b((?:[a-z0-9-]+\.)+" + _TLDS + r")\b", re.IGNORECASE)
-_SENDS = re.compile(r"\bsends?\s+((?:your\s+)?[A-Za-z0-9 ,_/\-]{3,70}?)\s+to\s+((?:[a-z0-9-]+\.)+" + _TLDS + r")\b",
-                    re.IGNORECASE)
+# Any two-letter country ending (evil.ru counts) plus common longer endings. File names such as
+# USER.md or plugin.yaml and setting keys such as plugins.isolation are not domains.
+_LONG_TLDS = {"com", "net", "org", "edu", "gov", "mil", "int", "info", "biz", "app", "dev", "cloud",
+              "tech", "xyz", "site", "online", "store", "live", "run", "page", "tools", "space", "website",
+              "email", "chat", "group", "digital", "network", "systems", "software", "solutions",
+              "services", "agency", "studio", "design", "news", "blog", "media", "date", "codes", "link"}
+_FILE_ENDINGS = {"md", "py", "js", "ts", "db", "rs", "cs", "hs", "pl", "rb", "pm", "go"}
+_HOST = r"(?:[a-z0-9-]{1,63}\.){1,6}[a-z]{2,24}"  # bounded: no slow backtracking on long dotted text
+_DOMAIN = re.compile(r"\b(" + _HOST + r")\b", re.IGNORECASE)
+_SENDS = re.compile(r"\bsends?\s+((?:your\s+)?[A-Za-z0-9 ,_/\-]{3,70}?)\s+to\s+(" + _HOST + r")\b", re.IGNORECASE)
+
+
+def _is_domain(host: str) -> bool:
+    tld = host.lower().rsplit(".", 1)[-1]
+    if len(tld) == 2:
+        return tld not in _FILE_ENDINGS
+    return tld in _LONG_TLDS
 _LOCAL = re.compile(r"\bno network\b|\bmakes no network\b|\bzero network\b|\blocal[- ]only\b|"
                     r"\bno (?:outbound|external) (?:calls|requests)\b|\bnever leaves? (?:your|the) (?:machine|computer)\b",
                     re.IGNORECASE)
@@ -46,10 +59,25 @@ MAX_FACTS = 3
 _NEGATION = re.compile(r"\b(?:no|never|not|cannot|without|zero|nor|blocks?|refuses?)\b|n't\b", re.IGNORECASE)
 
 
+# Words that start a new statement. "Without extra setup it moves real money": the "it" means the
+# negation belongs to "extra setup", not to moving money.
+_RESTART = re.compile(r"\b(?:it|they|this|that|which|will|can|could|may|might|does|do|is|are|was|"
+                      r"then|but|however|unless|except|when|if|also|still)\b", re.IGNORECASE)
+
+
 def _stated(disc: str, match: "re.Match[str]") -> bool:
-    """True unless the same clause negates it ("no network calls, credentials, shell commands")."""
+    """True unless a negation directly governs it ("no network calls, credentials, shell commands").
+
+    A safety check should prefer a false alarm over a false all-clear, so a negation only counts
+    when nothing that starts a new statement sits between it and the fact.
+    """
     start = max(disc.rfind(";", 0, match.start()), disc.rfind(". ", 0, match.start()), match.start() - 60, 0)
-    return not _NEGATION.search(disc[start:match.start()])
+    before = disc[start:match.start()]
+    negations = list(_NEGATION.finditer(before))
+    if not negations:
+        return True
+    between = before[negations[-1].end():]
+    return bool(_RESTART.search(between))
 
 
 def _first_upper(text: str) -> str:
@@ -69,13 +97,13 @@ def before_you_install(entry: dict[str, Any]) -> str:
     keys = list((entry.get("capabilities") or {}).get("requires_env") or [])
     facts: list[str] = []
     if disc:
-        sent = next((m for m in _SENDS.finditer(disc) if _stated(disc, m)), None)
+        sent = next((m for m in _SENDS.finditer(disc) if _stated(disc, m) and _is_domain(m.group(2))), None)
         if sent:
             what = sanitize.clean(sent.group(1), 70).rstrip(",")
             facts.append(f"sends {what} to {sent.group(2).lower()}")
         else:
             domains = list(dict.fromkeys(d.lower() for d in _DOMAIN.findall(disc)
-                                         if not d.lower().endswith("nousresearch.com")))
+                                         if _is_domain(d) and not d.lower().endswith("nousresearch.com")))
             if domains:
                 more = f" and {len(domains) - 1} more" if len(domains) > 1 else ""
                 facts.append(f"contacts {domains[0]}{more}")

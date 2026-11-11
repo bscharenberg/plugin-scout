@@ -49,6 +49,17 @@ def lookup(config: dict[str, Any], key: str) -> Optional[Any]:
     return None if isinstance(node, (dict, list)) else node
 
 
+# Settings that protect the user. Scout never suggests a command that changes these, because a
+# plugin's own warning could otherwise talk a user into weakening their security.
+_SENSITIVE = re.compile(r"approv|secur|sandbox|isolat|egress|secret|redact|permission|yolo|unsafe|"
+                        r"trust|allow|auth|token|password|guard|privacy|credential|firewall|"
+                        r"(?:^|\.)host(?:\.|$)", re.IGNORECASE)
+
+
+def is_sensitive(key: str) -> bool:
+    return bool(_SENSITIVE.search(key))
+
+
 def mismatches(issues: Iterable[Any], config: dict[str, Any]) -> list[dict[str, str]]:
     """Each warning that, read against your config, applies to you."""
     found = []

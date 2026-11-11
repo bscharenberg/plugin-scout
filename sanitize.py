@@ -21,12 +21,18 @@ from typing import Any, Optional
 # C0 and C1 controls (includes ESC, which starts terminal escape codes) and DEL
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")  # line breaks become spaces
 # zero-width characters, word joiner, byte order mark, and bidirectional overrides
-_INVISIBLE = re.compile(r"[\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]")
+_INVISIBLE = re.compile(
+    r"[\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f\u202a-\u202e"
+    r"\u2060-\u206f\u3164\ufe00-\ufe0f\ufeff\uffa0\U000e0000-\U000e007f\U000e0100-\U000e01ef]")
+# soft hyphen, combining grapheme joiner, Arabic letter mark, Hangul fillers, Mongolian
+# variation selectors, zero-width and bidirectional controls, word joiner, variation
+# selectors, byte order mark, and Unicode tag characters (which can hide text a model reads)
 _SPACES = re.compile(r"\s+")
 
 NAME = re.compile(r"^[a-z0-9_-]{1,64}$")          # the catalog's own rule for keys
 TOOL_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
-SHA = re.compile(r"^[0-9a-f]{40}$")
+SHA = re.compile(r"[0-9a-f]{40}")
+FULL_SHA = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
 
 LIMITS = {"title": 120, "description": 4000, "maintainer": 80, "category": 40, "tier": 20,
           "version": 64, "requires_hermes": 40, "repo": 300, "reason": 400}
@@ -34,10 +40,15 @@ MAX_ISSUES, ISSUE_LIMIT, MAX_LIST = 20, 600, 200
 
 
 def clean(value: Any, limit: int = 500) -> str:
-    """Plain, single-line, visible text no longer than `limit` characters."""
-    if value is None:
+    """Plain, single-line, visible text no longer than `limit` characters.
+
+    Only plain values are turned into text. A list or mapping (which YAML aliases can make
+    exponentially large when printed) becomes empty, never str()-ed.
+    """
+    if value is None or not isinstance(value, (str, int, float, bool)):
         return ""
-    text = _INVISIBLE.sub("", _CONTROL.sub(" ", str(value)))
+    text = str(value)[: limit * 4 + 64]  # bound the work before cleaning
+    text = _INVISIBLE.sub("", _CONTROL.sub(" ", text))
     text = _SPACES.sub(" ", text).strip()
     if len(text) > limit:
         text = text[: max(0, limit - 3)].rstrip() + "..."
@@ -46,14 +57,17 @@ def clean(value: Any, limit: int = 500) -> str:
 
 def name(value: Any) -> Optional[str]:
     """A catalog-style plugin name, or None if it does not follow the rule."""
-    text = str(value or "").strip()
-    return text if NAME.match(text) else None
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    return text if NAME.fullmatch(text) else None
 
 
 def tool_names(values: Any) -> list[str]:
+    """Names from a list of plain strings only; fullmatch so a trailing newline is refused."""
     if not isinstance(values, list):
         return []
-    return [str(v) for v in values[:MAX_LIST] if TOOL_NAME.match(str(v))]
+    return [v for v in values[:MAX_LIST] if isinstance(v, str) and TOOL_NAME.fullmatch(v)]
 
 
 def issues(values: Any) -> list[str]:
@@ -61,7 +75,8 @@ def issues(values: Any) -> list[str]:
     out: list[str] = []
     for item in values if isinstance(values, list) else []:
         if isinstance(item, dict):
-            out.extend(clean(f"{k}: {v}", ISSUE_LIMIT) for k, v in item.items())
+            out.extend(clean(f"{k}: {v}", ISSUE_LIMIT) for k, v in item.items()
+                       if isinstance(k, str) and isinstance(v, (str, int, float, bool)))
         elif isinstance(item, str):
             out.append(clean(item, ISSUE_LIMIT))
     return [i for i in out if i][:MAX_ISSUES]
@@ -81,7 +96,7 @@ def catalog_entry(raw: Any) -> Optional[dict[str, Any]]:
     repo = entry.get("repo") or ""
     entry["repo"] = repo if repo.startswith("https://") else None
     sha = str(raw.get("sha") or "").strip().lower()
-    entry["sha"] = sha if SHA.match(sha) else None
+    entry["sha"] = sha if SHA.fullmatch(sha) else None
     entry["known_issues"] = issues(raw.get("known_issues"))
     caps = raw.get("capabilities") if isinstance(raw.get("capabilities"), dict) else {}
     entry["capabilities"] = {k: tool_names(caps.get(k))

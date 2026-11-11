@@ -581,7 +581,9 @@ def rank_with_llm(profile: dict[str, Any], picks: list[dict[str, Any]],
     usage = {t: {"conversations": st.get("sessions", 0), "tool_calls": st.get("tool_calls", 0),
                  "scheduled_task": bool(st.get("scheduled")), "in_memory": bool(st.get("memory")),
                  "skills": len(st.get("skills", [])), "stated_interest": bool(st.get("interests"))}
-             for t, st in profile["topics"].items()}
+             for t, st in profile["topics"].items() if t in TOPICS}
+    if any(t not in TOPICS for t in profile["topics"]):  # your own words stay on this computer
+        usage["other interests you named"] = {"count": sum(1 for t in profile["topics"] if t not in TOPICS)}
     lines = [f"- {p['name']} ({p.get('tier') or 'community'}): "
              f"{_fence(entries_by_name.get(p['name'], {}).get('description'), 300)}" for p in pool]
     prompt = (

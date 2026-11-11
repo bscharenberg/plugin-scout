@@ -60,6 +60,13 @@ class DashboardApiTests(unittest.TestCase):
         self.api.set_interests({"jobs": ["99", "x"]})  # junk is ignored, not stored
         self.assertEqual(STATE.get("interests"), [])
 
+    def test_odd_numbers_and_free_text_are_ignored(self):
+        STATE.set("interests", ["news"])
+        self.api.set_interests({"jobs": ["\u00b2", True, 3.5, "10"]})  # superscript two used to crash int()
+        self.assertEqual(STATE["interests"], ["security", "privacy"])
+        self.api.set_interests({"items": ["my secret project"]})  # the page never sends free text
+        self.assertEqual(STATE["interests"], ["security", "privacy"])
+
     def test_dismiss_only_accepts_real_plugin_names(self):
         self.api.dismiss({"name": "spotify"})
         self.api.dismiss({"name": "../../etc; rm -rf ~"})

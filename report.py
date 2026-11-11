@@ -22,10 +22,13 @@ _LABEL = {
 
 def conflicts_text(findings: list[dict[str, Any]], plugin_count: int, limit: int = 8) -> str:
     serious = [f for f in findings if f["severity"] >= 2]
-    head = (
-        f"Plugin Scout: {plugin_count} enabled plugin(s) checked. "
-        + (f"{len(serious)} to look at." if serious else "All clear, nothing conflicting.")
-    )
+    if serious:
+        verdict = f"{len(serious)} to look at."
+    elif findings:
+        verdict = f"Nothing serious; {len(findings)} note{'' if len(findings) == 1 else 's'} below."
+    else:
+        verdict = "All clear, nothing conflicting."
+    head = f"Plugin Scout: {plugin_count} enabled plugin(s) checked. {verdict}"
     if not findings:
         return head
     lines = [head, ""]

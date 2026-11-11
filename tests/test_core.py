@@ -199,7 +199,7 @@ class ConflictTests(unittest.TestCase):
         found = conflicts.verify_with_llm(found, self.idx, ask=lambda prompt: "NO. They watch different things.")
         target = [f for f in found if f["plugins"] == ["memory-shield", "provenance-gate"]][0]
         self.assertEqual(target["kind"], "overlap")
-        self.assertTrue(any(e.startswith("AI check:") for e in target["evidence"]))
+        self.assertTrue(any(e.startswith("AI opinion:") for e in target["evidence"]))
 
     def test_llm_failure_leaves_findings_unchanged(self):
         found = conflicts.check([_plugin("memory-shield"), _plugin("provenance-gate")], self.idx)

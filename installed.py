@@ -94,9 +94,16 @@ def read_manifest(plugin_dir: Path) -> Optional[dict[str, Any]]:
     if not isinstance(data, dict):
         return None
     caps = data.get("capabilities") if isinstance(data.get("capabilities"), dict) else {}
+    # A name ends up in suggested commands, so it must follow the catalog's own rule. Anything
+    # else (spaces, shell syntax, escape codes, a nested structure) means we skip the plugin.
+    raw_name = data.get("name") if isinstance(data.get("name"), str) else plugin_dir.name
+    name = sanitize.name(raw_name.strip()) or sanitize.name(plugin_dir.name)
+    if not name:
+        return None
+    version = data.get("version")
     result = {
-        "name": sanitize.clean(data.get("name") or plugin_dir.name, 64),
-        "version": sanitize.clean(data.get("version"), 64),
+        "name": name,
+        "version": sanitize.clean(version, 64) if isinstance(version, (str, int, float)) else "",
         "folder": sanitize.clean(plugin_dir.name, 64),
     }
     for key in _LIST_KEYS:
@@ -157,12 +164,31 @@ def read_sidecar(plugins_dir: Path) -> dict[str, dict[str, Any]]:
     return {str(k): v for k, v in rows.items() if isinstance(v, dict)} if isinstance(rows, dict) else {}
 
 
+def _record_fields(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Where an install record may keep its values: Hermes nests catalog installs under
+    "catalog" ({"name", "sha", "pin"}); older or hand-made records keep them at the top."""
+    nested = row.get("catalog")
+    return ([nested] if isinstance(nested, dict) else []) + [row]
+
+
 def _installed_sha(row: dict[str, Any]) -> Optional[str]:
-    for key in ("sha", "commit", "pinned_sha", "catalog_sha", "ref"):
-        value = row.get(key)
-        if isinstance(value, str) and len(value) >= 7:
-            return value
+    """A full commit id only. Short ids and tags cannot be compared with the catalog's pin,
+    and comparing them would report a false "Update available"."""
+    for fields in _record_fields(row):
+        for key in ("sha", "pin", "commit", "pinned_sha", "catalog_sha", "revision", "ref"):
+            value = fields.get(key)
+            if isinstance(value, str) and sanitize.FULL_SHA.fullmatch(value.strip().lower()):
+                return value.strip().lower()
     return None
+
+
+def _catalog_name(row: dict[str, Any], fallback: str) -> str:
+    for fields in _record_fields(row):
+        for key in ("catalog_name", "name"):
+            value = fields.get(key)
+            if isinstance(value, str) and sanitize.name(value.strip()):
+                return value.strip()
+    return fallback
 
 
 def installed_plugins(plugins_dir: Path, enabled: Iterable[str]) -> list[dict[str, Any]]:
@@ -178,6 +204,6 @@ def installed_plugins(plugins_dir: Path, enabled: Iterable[str]) -> list[dict[st
         row = sidecar.get(rel) or sidecar.get(folder.name) or sidecar.get(manifest["name"]) or {}
         manifest["enabled"] = bool({manifest["name"], folder.name, rel} & enabled_set)
         manifest["installed_sha"] = _installed_sha(row)
-        manifest["catalog_name"] = row.get("catalog_name") or row.get("name") or manifest["name"]
+        manifest["catalog_name"] = _catalog_name(row, manifest["name"])
         found.append(manifest)
     return found

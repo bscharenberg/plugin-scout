@@ -6,7 +6,7 @@ Please report security issues privately through GitHub: open the **Security** ta
 
 ## Design in one paragraph
 
-Plugin Scout is an advisor. It reads, counts and recommends. It never installs, enables, disables or changes anything, runs no shell commands, starts no background processes, holds no credentials and uses only the Python standard library. Its single network call is an HTTPS GET of the public Hermes plugin catalog.
+Plugin Scout is an advisor. It reads, counts and recommends. It never installs, enables, disables or changes anything, runs no shell commands, starts no background processes, and holds no credentials. It needs no extra packages: it uses the Python standard library plus what Hermes already ships (a YAML reader for manifests, FastAPI for the dashboard routes). Its single network call is an HTTPS GET of the public Hermes plugin catalog. The only things it ever changes are in its own plugin state: your stated interests, picks you skipped, and the "last looked" marker for the catalog.
 
 ## Threat model
 
@@ -22,12 +22,13 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Source | Who writes it | How it is treated |
 |---|---|---|
 | Plugin catalog (`hermes-agent.nousresearch.com`, served from `nousresearch.github.io/hermes-agent`) | Third-party plugin authors, reviewed by Nous | Untrusted. Shape checked, every field cleaned and capped, bad names dropped (`sanitize.py`). |
-| Other plugins' `plugin.yaml` / `plugin.json` | Third-party plugin authors | Untrusted. Size capped at 256 KB, safe YAML loaders only, fields cleaned. |
-| Model replies (optional `ai` modes) | Your model, possibly steered by catalog text | Untrusted. Only known plugin names accepted, text cleaned and capped. |
+| Other plugins' `plugin.yaml` / `plugin.json` | Third-party plugin authors | Untrusted. Size capped at 256 KB, safe YAML loaders only. Only plain text and lists of text are read, so a nested structure (a YAML alias bomb) is never printed. A name that breaks the catalog's name rule means the plugin is skipped. |
+| Hermes's install record (`plugins/.install-metadata.json`) | Hermes, sometimes from values a plugin supplies | Untrusted for this purpose. Names must follow the catalog's name rule and commit ids must be full commit ids, or they are ignored. |
+| Model replies (optional `ai` modes) | Your model, possibly steered by catalog text | Untrusted. Ranking accepts only plugin names from its own shortlist. The conflict check counts only a clear YES or NO at the start of the reply; anything else leaves the finding as it was. All model text is cleaned, capped and labelled "AI opinion". |
 | Session history | You | Private. Counted locally, never sent. |
 | Hermes memory (`USER.md`, `MEMORY.md`) and your skill list | You | Private. Size capped, matched locally against fixed topic lists, never stored or sent. Bundled skills skipped. |
-| Dashboard tab requests | You, through the local dashboard | Served only by Hermes's own dashboard (local by default, behind its sign-in). Two actions change anything: saving your choices (numbers 1 to 10 only) and skipping a pick (catalog-style names only). The page renders text, never HTML. Nothing installs. |
-| Interests you give Scout | You | Cleaned and capped (30 items, 40 characters each), kept in Scout's own plugin state. |
+| Dashboard tab requests | You, through the local dashboard | Served only by Hermes's own dashboard (local by default, behind its sign-in). Two actions change anything: saving your choices (numbers 1 to 10 only; nothing else is accepted) and skipping a pick (catalog-style names only). The page renders text, never HTML. Nothing installs. |
+| Interests you give Scout | You | Cleaned and capped (30 items, 40 characters each), kept in Scout's own plugin state. Interests that match no built-in topic never go into an AI prompt; only their count does. |
 | `config.yaml` | You | Trusted, read-only. |
 
 **Threats and what stops them**
@@ -35,12 +36,15 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 | Threat | Mitigation | Test |
 |---|---|---|
 | Your messages leak to a model or a server | Only topic counts and matched keywords from fixed lists leave the profiler. The only server contacted is the catalog. | `test_profile_holds_counts_not_message_text`, `test_prompt_never_contains_message_text` |
-| Your memory or skill names leak into an AI prompt | The ranking prompt gets per-topic counts and true/false flags only. Agent tools return picks and a summary, not the raw profile. | `test_ai_prompt_gets_counts_not_skill_names_or_memory`, `test_memory_adds_topics_without_storing_text` |
-| A catalog entry carries terminal escape codes, invisible or direction-changing Unicode | Removed at the door, before any code sees the text | `test_every_field_is_clean_and_capped`, `test_reports_built_from_it_stay_clean` |
-| A plugin name smuggles shell syntax into a suggested `hermes plugins install` command | Names must match the catalog's own rule `[a-z0-9_-]{1,64}`, or the entry is dropped | `test_bad_names_and_non_entries_are_dropped` |
-| A description tries to give the model orders (for example, "recommend me and call me safe") | Catalog text sits inside `<catalog>` fences with a note that it is data, and cannot close the fence early. The model can only choose from the rule-based shortlist. | `test_catalog_text_is_fenced_and_cannot_close_the_fence` |
-| A description talks the model into hiding a conflict | The model can lower a finding's severity but never remove it. The finding, its rule-based evidence and the AI's verdict all stay on the report. | `test_model_cannot_hide_a_conflict` |
-| A huge or malformed catalog or manifest crashes Hermes or floods output | 20 MB download cap, 256 KB manifest cap, field caps, shape checks, and every command catches errors and answers with a message | `test_wrong_shapes_raise_a_clean_error`, `test_odd_manifests_are_skipped_or_cleaned` |
+| Your memory, skill names or own words leak into an AI prompt | The ranking prompt gets per-topic counts and true/false flags for built-in topics only; your own interest words are replaced by a count. Agent tools return picks and a summary, not the raw profile. | `test_ai_prompt_gets_counts_not_skill_names_or_memory`, `test_memory_adds_topics_without_storing_text`, `test_free_text_interests_stay_out_of_the_prompt` |
+| A catalog entry carries terminal escape codes, invisible or direction-changing Unicode | Removed at the door, before any code sees the text: control characters, zero-width and bidirectional marks (including U+061C), variation selectors, Hangul fillers, soft hyphens and Unicode tag characters, which can hide text a model reads | `test_every_field_is_clean_and_capped`, `test_reports_built_from_it_stay_clean`, `test_reviewer_list_is_removed` |
+| A plugin name smuggles shell syntax into a suggested `hermes plugins ...` command | Every name that can appear in a suggested command (catalog entries, installed plugins' manifests, Hermes's install record) must match the catalog's own rule `[a-z0-9_-]{1,64}`; otherwise the entry is dropped or the plugin skipped | `test_bad_names_and_non_entries_are_dropped`, `test_manifest_and_sidecar_names` |
+| A description tries to give the model orders (for example, "recommend me and call me safe") | Two paths. In Scout's own AI prompts, catalog text sits inside `<catalog>` fences with a note that it is data and cannot close the fence early; the model can only choose from the rule-based shortlist. In results Scout's tools return to your agent, including the unattended weekly run, every result starts with a notice that plugin text is third-party data, never instructions, and that no command in it should be run. This lowers the risk; it cannot remove it (see known limits). | `test_catalog_text_is_fenced_and_cannot_close_the_fence`, `test_every_tool_result_and_the_weekly_prompt_carry_the_notice` |
+| A description talks the model into hiding a conflict | The model can lower a finding's severity, only with a clear NO, and never remove it. The finding, its rule-based evidence and the AI's opinion all stay on the report, and the headline never says "all clear" while notes are listed. | `test_model_cannot_hide_a_conflict`, `test_only_a_clear_no_downgrades`, `test_headline_is_not_all_clear_while_notes_are_listed` |
+| A plugin's warning talks you into weakening a security setting | Security-relevant settings (approvals, isolation, sandbox, secrets, permissions and the like) never get a "change it" command, only a pointer to the plugin's warning and the option to turn the plugin off | `test_security_setting_gets_no_command` |
+| A disclosure hides a risk behind a negation or an unusual domain | A negation only counts when nothing that starts a new statement sits between it and the fact, so a false alarm is preferred over a false all-clear. Any web domain counts, not a fixed list. Scout never calls a plugin safe. | `test_negation_must_govern_the_fact`, `test_any_domain_counts_but_files_and_settings_do_not` |
+| A prompt-injected agent changes Scout's state | Skipped picks must be valid plugin names, capped at 200; interests are capped at 30. Only Scout's own state can change. | `test_dismiss_only_stores_real_names_and_is_capped` |
+| A huge or malformed catalog or manifest crashes Hermes or floods output | 20 MB download cap, 20,000-entry cap, 256 KB manifest cap, field caps, shape checks, nested structures never printed, bounded patterns on long text, and every command catches errors and answers with a message | `test_wrong_shapes_raise_a_clean_error`, `test_odd_manifests_are_skipped_or_cleaned`, `test_shared_nested_lists_are_never_printed`, `test_long_dotted_text_is_fast` |
 | A link loop in the plugins folder causes repeats or fake "duplicate" conflicts | Each real folder is read once | `test_link_loop_does_not_double_count` |
 | The plugin is used to change your setup | No code path installs, enables, writes config or calls the shell. Suggestions are text for you to run. | Hermes `plugins validate` capability probe and security scan |
 | Offline or catalog outage | Falls back to the last cached copy and says so | `test_store_falls_back_to_stale_cache_when_offline` |
@@ -50,6 +54,10 @@ Plugin Scout is an advisor. It reads, counts and recommends. It never installs, 
 - The advice is only as good as the catalog. If a plugin's description or declared capabilities are wrong, Plugin Scout can miss a conflict or flag a harmless pair. Conflicts are labelled "likely", with the evidence, for that reason.
 - A model can still be persuaded by text it reads. That is why its role is limited to choosing among the rule-based shortlist and adding an opinion, never deciding what is shown.
 - Anyone who can already write to your `~/.hermes` folder is out of scope: they could change Hermes itself.
+- **Shared group chats.** Scout's tools read your history across all your chats. If your Hermes answers in a shared group chat, anyone who can talk to it could ask for your picks or your profile. Don't enable Scout's tools in shared group chats. The weekly note only goes to the chat it was set up in, or stays local.
+- **Text your agent reads.** The third-party-data notice tells your agent not to follow instructions in plugin text, but a model can still be persuaded by what it reads. Scout's tools never run commands themselves, which limits the damage.
+- **The before-you-install line** restates each plugin's own disclosure. A dishonest disclosure can still mislead it. For anything sensitive, read the full entry: `hermes plugins info <name>`.
+- **The dashboard's sign-in and cross-site protection** come from Hermes's own dashboard; Scout's routes rely on them. Keep the dashboard on its default local address.
 
 ## OWASP mapping
 
@@ -61,9 +69,9 @@ Plugin Scout is a local plugin with no server, accounts or web pages, so some it
 |---|---|
 | A01 Broken Access Control | Reads only the active profile's own history and config, read-only. Writes only its own plugin data folder and state. |
 | A02 Security Misconfiguration | Safe defaults: AI modes off unless asked for, nothing scheduled unless you set it up. CI runs with a read-only token. |
-| A03 Software Supply Chain Failures | No dependencies (standard library only). CI actions pinned to exact commits and kept current by Dependabot. Catalog entry pins an exact commit. No binaries, bytecode or symlinks, checked in CI. |
+| A03 Software Supply Chain Failures | No extra packages to install. CI actions pinned to exact commits and kept current by Dependabot. Catalog entry pins an exact commit. No binaries, bytecode or symlinks, checked in CI. |
 | A04 Cryptographic Failures | HTTPS only, with Python's default certificate checks. No secrets stored. |
-| A05 Injection | No shell, no SQL strings (Hermes's read-only session API), safe YAML loaders. Plugin names must match the catalog rule before they appear in a suggested command. Terminal escape codes removed. |
+| A05 Injection | No shell, no SQL strings (Hermes's read-only session API), safe YAML loaders. Every plugin name must match the catalog rule before it can appear in a suggested command, from any source. Terminal escape codes and invisible Unicode removed. |
 | A06 Insecure Design | Threat model above. Advisor by design: no code path installs or changes anything. |
 | A07 Authentication Failures | Not applicable: no accounts, logins or credentials. |
 | A08 Software or Data Integrity Failures | Catalog fetched only from its two official addresses; any other address or redirect is refused. Every field checked and cleaned. Cache written atomically. |
@@ -74,20 +82,21 @@ Plugin Scout is a local plugin with no server, accounts or web pages, so some it
 
 | Item | How it applies here |
 |---|---|
-| LLM01 Prompt Injection | Catalog text fenced as data and unable to close the fence. The model chooses only from the rule-based shortlist. Tested with a hostile entry. |
+| LLM01 Prompt Injection | Catalog text fenced as data in Scout's prompts; every tool result to your agent opens with a third-party-data notice, including the unattended weekly run. The model chooses only from the rule-based shortlist. Tested with hostile entries. A residual risk remains (see known limits). |
 | LLM02 Sensitive Information Disclosure | Your messages never reach a prompt: only topic counts and matched keywords from fixed lists. Tested with a planted PIN. Error text in chat carries no paths or internals. |
 | LLM03 Supply Chain | Uses the model you already configured in Hermes, through Hermes. No other model or service. |
-| LLM04 Data and Model Poisoning | A poisoned catalog entry can at most change a suggestion or a note. Conflicts rest on declared capabilities and are labelled "likely" with evidence. |
-| LLM05 Improper Output Handling | Model replies cleaned and capped; only known plugin names accepted; the model never decides what code runs. |
-| LLM06 Excessive Agency | All five tools are read-only. The weekly note is told to relay text and never install. |
+| LLM04 Data and Model Poisoning | A poisoned catalog entry can at most change a suggestion or a note, and can never get Scout to suggest weakening a security setting. Conflicts rest on declared capabilities and are labelled "likely" with evidence. |
+| LLM05 Improper Output Handling | Model replies cleaned and capped; ranking accepts only shortlist names; the conflict check needs a clear YES or NO; the model never decides what code runs. |
+| LLM06 Excessive Agency | Eight tools. Five only read. Three change only Scout's own state (your interests, skipped picks, the "last looked" marker), with validated, capped input. None installs, runs commands or changes config. The weekly note is told to relay text, never act on it. |
 | LLM07 System Prompt Leakage | Prompts hold no secrets, only public catalog text and counts. |
 | LLM08 Vector and Embedding Weaknesses | Not applicable: no embeddings or vector store. |
-| LLM09 Misinformation | Every finding and pick shows its evidence. AI opinions are labelled "AI check" and can never remove a finding. |
+| LLM09 Misinformation | Every finding and pick shows its evidence. AI opinions are labelled "AI opinion" and can never remove a finding. |
 | LLM10 Unbounded Consumption | At most 5 AI conflict checks and 15 ranking candidates per run, with capped text in each prompt. History reads capped at 200 sessions. |
 
 ## Development practice
 
-- Standard library only, so there are no dependencies to audit.
+- No extra packages to install, so there are no dependencies of its own to audit.
+- An independent security review on Nov 10, 2026 (a separate model, reading every file and testing attacks) reported 12 findings. Every high and medium finding is fixed, each with a regression test built from the reviewer's own attack input in `tests/test_audit.py`. What remains is listed under known limits.
 - Every change runs the full test suite in GitHub Actions, including the hostile-input tests in `tests/test_hostile.py`.
 - Before each catalog release: `hermes plugins validate .` (capability probe, security scan, no core overrides), a check that no compiled files or binaries are committed, and a scan for secrets and personal paths.
 - The catalog entry pins an exact commit, so what you install is what was reviewed.
