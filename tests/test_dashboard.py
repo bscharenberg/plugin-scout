@@ -86,7 +86,7 @@ class DashboardApiTests(unittest.TestCase):
             core._load_catalog = real
         self.assertEqual(out["picks"], [])
         self.assertEqual(out["error"], "could not reach the plugin catalog")
-        self.assertEqual(len(out["jobs"]), 10)
+        self.assertEqual(len(out["jobs"]), len(core.usage.JOBS))
         json.dumps(out)  # everything the page gets is plain JSON
 
     def test_page_has_no_error_when_catalog_loads(self):

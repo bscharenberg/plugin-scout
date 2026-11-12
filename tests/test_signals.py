@@ -18,7 +18,7 @@ MEMORY = ("Alex likes plain English. Alex follows prompt injection research and 
           f"wants a Monday news briefing, and plays Spotify while working. {SECRET}")
 SKILLS = [{"name": "ai-news-digest", "description": "Weekly AI news digest with headlines"}]
 EXTRA = [  # small fake entries so custom interests and new topics have something to match
-    {"name": "kube-helper", "title": "Kubernetes Helper", "description": "Manage kubernetes clusters.",
+    {"name": "bee-helper", "title": "Beekeeping Helper", "description": "Track your beekeeping hives.",
      "tier": "community", "known_issues": [], "capabilities": {}},
     {"name": "injection-guard", "title": "Injection Guard", "description": "Blocks prompt injection in tool results.",
      "tier": "community", "known_issues": [], "capabilities": {}},
@@ -45,24 +45,24 @@ class SignalTests(unittest.TestCase):
         self.assertEqual(p["topics"]["news"]["skills"], ["ai-news-digest"])
 
     def test_interests_map_to_topics_or_become_their_own(self):
-        p = usage.add_signals(_cold(), interests=["spotify", "kubernetes"])
+        p = usage.add_signals(_cold(), interests=["spotify", "beekeeping"])
         self.assertEqual(p["topics"]["music"]["interests"], ["spotify"])
-        self.assertIn("kubernetes", p["topics"])
-        self.assertIn("kubernetes", p["custom"])
+        self.assertIn("beekeeping", p["topics"])
+        self.assertIn("beekeeping", p["custom"])
 
     def test_cold_start_still_gives_picks(self):
-        p = usage.add_signals(_cold(), memory_text=MEMORY, skills=SKILLS, interests=["kubernetes"])
+        p = usage.add_signals(_cold(), memory_text=MEMORY, skills=SKILLS, interests=["beekeeping"])
         self.assertTrue(usage.has_signal(p))
         picks = usage.candidates(p, FIXTURE["entries"] + catalog.validate({"entries": EXTRA})["entries"],
                                  exclude=set())
         names = [x["name"] for x in picks]
-        self.assertIn("kube-helper", names)
+        self.assertIn("bee-helper", names)
         self.assertIn("injection-guard", names)
         self.assertIn("spotify", names)
         ev = {x["name"]: x["evidence"] for x in picks}
-        self.assertIn("you told scout you're into kubernetes", ev["kube-helper"].lower())
+        self.assertIn("you told scout you're into beekeeping", ev["bee-helper"].lower())
         self.assertIn("Hermes memory mentions security", ev["injection-guard"])
-        self.assertFalse(ev["kube-helper"].startswith("In the last"))  # no history claimed
+        self.assertFalse(ev["bee-helper"].startswith("In the last"))  # no history claimed
 
     def test_history_and_memory_evidence_together(self):
         p = usage.add_signals(usage.build_profile(_sample(), now=NOW), memory_text=MEMORY)
@@ -114,12 +114,12 @@ class TextTests(unittest.TestCase):
 
     def test_profile_view_shows_where_each_signal_came_from(self):
         p = usage.add_signals(usage.build_profile(_sample(), now=NOW), memory_text=MEMORY,
-                              skills=SKILLS, interests=["kubernetes"])
+                              skills=SKILLS, interests=["beekeeping"])
         text = report.profile_text(p)
         self.assertIn("History: 2 conversations", text)
         self.assertIn("music (strong signal): came up in 2 of 2 conversations; in your memory", text)
         self.assertIn("skill ai-news-digest", text)
-        self.assertIn("kubernetes (strong signal): you told me", text)
+        self.assertIn("beekeeping (strong signal): you told me", text)
         self.assertNotIn("4321", text)
         self.assertNotIn("play something", text)
 

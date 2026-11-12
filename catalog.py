@@ -23,7 +23,7 @@ except ImportError:  # loaded as a plain module (tests)
 CATALOG_URL = "https://hermes-agent.nousresearch.com/docs/api/plugin-catalog.json"
 CACHE_TTL_SECONDS = 6 * 60 * 60          # same window Hermes uses for its own copy
 MAX_BYTES = 20 * 1024 * 1024             # refuse anything absurdly large
-MAX_ENTRIES = 20000                      # the catalog has about 1,600 today
+MAX_ENTRIES = 20000                      # the catalog has about 2,100 today
 RETRY_AFTER_SECONDS = 600                # after a failed download, use the cached copy for 10 minutes
 _FAILED_UNTIL: dict[str, float] = {}     # cache path -> time before which we don't try again
 USER_AGENT = "plugin-scout-hermes-plugin"

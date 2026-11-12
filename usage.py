@@ -36,8 +36,12 @@ TOPICS: dict[str, dict[str, Any]] = {
                "catalog": r"\bgithub\b|\bgitlab\b", "tools": []},
     "notes": {"user": r"\bobsidian\b|\bnotion\b|\bjournal\b|\bmy notes\b|\bnote-?taking\b",
               "catalog": r"\bobsidian\b|\bnotion\b|\bjournal\b|\bnotes app\b", "tools": []},
-    "tasks": {"user": r"\bto-?dos?\b|\btask list\b|\bremind(er)?s?\b|\bremind me\b",
-              "catalog": r"\btodoist\b|\breminders?\b|\bto-?do\b|\btask manager\b", "tools": ["todo"]},
+    "tasks": {"user": r"\bto-?dos?\b|\btask list\b|\bremind(er)?s?\b|\bremind me\b|\bplanners?\b|\bplan my (?:day|week)\b"
+                      r"|\bhabits?\b|\bgoals?\b|\bpriorit\w+|\btrello\b|\basana\b|\bjira\b|\bkanban\b",
+              "catalog": r"\btodoist\b|\breminders?\b|\bto-?do\b|\btask manager\b|\bplanners?\b|\b(?:daily|weekly) plan\w*"
+                         r"|\bhabit track\w*|\bgoal tracking\b|\b(?:daily|weekly|personal) goals?\b|\baccountability\b"
+                         r"|\bpriorities\b|\bproject management\b|\btrello\b|\basana\b|\bjira\b|\bclickup\b|\bticktick\b",
+              "tools": ["todo"]},
     "chat apps": {"user": r"\bslack\b|\bdiscord\b|\btelegram\b|\bwhatsapp\b|\bsignal\b",
                   "catalog": r"\bslack\b|\bdiscord\b|\bwhatsapp\b|\bsignal\b|\bmatrix\b", "tools": ["send_message"]},
     "music": {"user": r"\bspotify\b|\bmusic\b|\bplaylists?\b|\bsongs?\b",
@@ -61,8 +65,11 @@ TOPICS: dict[str, dict[str, Any]] = {
                "catalog": r"\bflights?\b|\bhotels?\b|\btravel\b", "tools": []},
     "fitness": {"user": r"\bworkouts?\b|\bstrava\b|\bgarmin\b|\bfitness\b|\btraining plan\b",
                 "catalog": r"\bstrava\b|\bgarmin\b|\bfitness\b|\bworkouts?\b", "tools": []},
-    "coding": {"user": r"\bcode\b|\bpython\b|\bscripts?\b|\bbugs?\b|\bdeploy\w*",
-               "catalog": r"\bcoding agent\b|\bcode review\b|\bdeploy\w*|\bci\b",
+    "coding": {"user": r"\bcode\b|\bpython\b|\bscripts?\b|\bbugs?\b|\bdeploy\w*|\bdocker\b|\bkubernetes\b|\bgit\b"
+                       r"|\bdevops\b|\bhomelab\b|\bself-?host\w*|\brefactor\w*|\bunit tests?\b",
+               "catalog": r"\bcoding agents?\b|\bcode reviews?\b|\bcodebases?\b|\bdeploy\w*|\bci\b|\bdocker\b|\bkubernetes\b"
+                          r"|\bk8s\b|\bgit\b|\bide\b|\bvs ?code\b|\bjetbrains\b|\bdevops\b|\bhomelab\b|\bunit tests?\b"
+                          r"|\btest suites?\b|\bpull requests?\b|\brefactor\w*|\blinters?\b",
                "tools": ["terminal", "execute_code", "patch", "write_file"]},
     "documents": {"user": r"\bpdfs?\b|\bdocx\b|\bspreadsheets?\b|\bexcel\b|\bslides\b",
                   "catalog": r"\bpdf\b|\bdocx\b|\bspreadsheets?\b|\bexcel\b|\bpowerpoint\b", "tools": []},
@@ -71,7 +78,8 @@ TOPICS: dict[str, dict[str, Any]] = {
     "maps": {"user": r"\bdirections\b|\bmaps?\b|\broute\b|\bnearby\b",
              "catalog": r"\bmaps?\b|\bdirections\b|\bgeocod\w+", "tools": []},
     "security": {"user": r"\bsecurity\b|\bprompt injection\b|\bjailbreak\w*|\bprivacy\b|\bvulnerabilit\w+|\bphishing\b|\bguardrails?\b",
-                 "catalog": r"\bsecurity\b|\bprompt[- ]injection\b|\bguard(rail)?s?\b|\bvulnerabilit\w+|\bsecrets? scan\w*",
+                 "catalog": r"\bsecurity\b|\bprompt[- ]injection\b|\bguard(rail)?s?\b|\bvulnerabilit\w+|\bsecrets? scan\w*"
+                            r"|\btool[- ]call polic\w+|\bapproval (?:gates?|polic\w+|rules?)\b|\bpre_tool_call\b",
                  "tools": []},
     "writing": {"user": r"\bwrit(?:e|ing)\b|\brewrite\b|\bdraft\w*|\bblog\w*|\bessays?\b|\blinkedin\b|\btweets?\b|\bnewsletters?\b|\bcopy ?writing\b|\bsocial posts?\b",
                 "catalog": r"\bwriting\b|\bwriters?\b|\bblog\w*|\bcopywrit\w+|\bnewsletters?\b|\blinkedin\b|\btwitter\b|\bsocial media\b|\bbluesky\b|\bghostwrit\w+",
@@ -92,6 +100,60 @@ TOPICS: dict[str, dict[str, Any]] = {
                   # "via MCP" says how a plugin connects, not that it is about agents: match agent tooling only
                   "catalog": r"\bmcp[- ](?:serve\w*|gateway|hub|manager|registry|bridge|proxy)\b|\bmulti-agent\b|\bsub-?agents?\b|\bagent (?:orchestration|teams?|swarms?)\b|\borchestrat\w+|\bevals?\b|\bevaluations?\b|\bcontext engineering\b",
                   "tools": ["delegate_task"]},
+    "data": {"user": r"\bsql\b|\bdatabases?\b|\bpostgres\w*|\bsqlite\b|\bdata analysis\b|\bdatasets?\b|\bcharts?\b",
+             "catalog": r"\bsql\b|\b(?:your|query|sql|postgres\w*|mysql) databases?\b|\bdatabases? (?:quer\w+|schemas?|admin\w*)\b"
+                        r"|\bmysql\b|\bmariadb\b|\bduckdb\b|\bbigquery\b|\bsnowflake\b"
+                        r"|\bdata analysis\b|\bdata warehouse\b|\bdatasets?\b|\bcharts?\b|\bdata vi[sz]\w*",
+             "tools": []},
+    "design": {"user": r"\bfigma\b|\bcanva\b|\blogos?\b|\bmockups?\b|\bwireframes?\b|\bui design\b|\bgraphic design\b"
+                       r"|\bdesign systems?\b|\b3d\b|\bblender\b|\bcad\b|\bposters?\b",
+               "catalog": r"\bfigma\b|\bcanva\b|\bdesign systems?\b|\bgraphic design\b|\bui design\b|\bux\b|\bmockups?\b"
+                          r"|\bwireframes?\b|\blogos?\b|\b3d\b|\bblender\b|\bcad\b|\bshaders?\b",
+               "tools": []},
+    "games": {"user": r"\bgames?\b|\bgaming\b|\bgame dev\w*|\bgodot\b|\bunity\b|\bunreal\b|\bminecraft\b|\bchess\b"
+                      r"|\bpoker\b|\bd&d\b|\bdnd\b",
+              "catalog": r"\bgames?\b|\bgaming\b|\bgame dev\w*|\bgame engines?\b|\bgodot\b|\bunity\b|\bunreal\b"
+                         r"|\bminecraft\b|\bchess\b|\bpoker\b|\bsprites?\b|\bsprite sheets?\b",
+              "tools": []},
+    "audio": {"user": r"\bpodcasts?\b|\bsound effects?\b|\baudio\b|\baudiobooks?\b",
+              "catalog": r"\bpodcasts?\b|\bsound effects?\b|\baudio (?:editing|files?|clips?|generation)\b|\baudiobooks?\b|\bsfx\b",
+              "tools": []},
+    "business": {"user": r"\bmarketing\b|\bseo\b|\bcrm\b|\bsales\b|\bclients?\b|\bcustomers?\b|\bads\b|\badvertis\w+"
+                         r"|\bcampaigns?\b|\bhubspot\b|\bsalesforce\b|\bmy startup\b|\bsmall business\b",
+                 "catalog": r"\bmarketing\b|\bseo\b|\bcrm\b|\bsales\b|\bhubspot\b|\bsalesforce\b|\bad librar\w+"
+                            r"|\bad campaigns?\b|\badvertising\b|\badvertisers?\b|\bcustomer support\b|\bhelpdesk\b|\bsmall business\w*",
+                 "tools": []},
+    "legal": {"user": r"\btax(?:es)?\b|\blegal\b|\blawyers?\b|\bcontracts?\b|\blease\b|\birs\b|\bnda\b",
+              "catalog": r"\btax(?:es|-exempt)?\b|\blegal\b|\blaws?\b|\blawyers?\b|\b(?:legal|employment|rental|service)"
+                         r" contracts?\b|\bcontract review\b|\birs\b"
+                         r"|\bstatutes?\b|\bcourts?\b",
+              "tools": []},
+    "health": {"user": r"\bhealth\b(?![- ]?checks?)|\bhealthcare\b|\bdoctors?\b|\bsymptoms?\b|\bmy sleep\b|\bsleep tracking\b"
+                       r"|\bdiet\b|\bnutrition\b|\bcalories\b|\bmeditat\w+|\bmedications?\b|\btherapy\b",
+               "catalog": r"\b(?:your|personal|mental|physical) health\b|\bhealth (?:context|records?|data|coach\w*)\b|\bhealthcare\b"
+                          r"|\bmedical\b|\bnutrition\b|\bmeditat\w+|\bmedications?\b"
+                          r"|\bwellness\b|\bsleep tracking\b|\bprimary care\b|\bfirst aid\b",
+               "tools": []},
+    "food": {"user": r"\brecipes?\b|\bcook(?:ing|ed)?\b|\bmeal plan\w*|\brestaurants?\b|\bdinner\b|\bgrocer\w+",
+             "catalog": r"\bcooking\b|\bmeal plan\w*|\brestaurants?\b|\bgrocer\w+|\bfood\b|\bcuisine\b|\bfood recipes?\b",
+             "tools": []},
+    "weather": {"user": r"\bweather\b|\bwill it rain\b", "catalog": r"\bweather\b", "tools": []},
+    "token costs": {"user": r"\btoken (?:usage|costs?|limits?|spend\w*)\b|\bcontext window\b|\busage limits?\b"
+                            r"|\bspend(?:ing)? (?:on|too much)\b|\bapi (?:costs?|bills?)\b|\bsave tokens\b",
+                    "catalog": r"\btoken (?:usage|savings?|costs?|overhead|budgets?|spend)\b|\bfewer tokens\b|\bsaves? tokens\b"
+                               r"|\bcontext (?:window|compression|compaction|overhead|bloat)\b|\bcompaction\b|\bcost tracking\b"
+                               r"|\bspend (?:tracking|limits?|caps?)\b|\bquotas?\b",
+                    "tools": []},
+    # Plugins for Hermes itself. The catalog's own category is the clearest signal for these.
+    "models": {"user": r"\bollama\b|\blm studio\b|\blocal (?:llms?|models?)\b|\bopenrouter\b|\bmodel providers?\b"
+                       r"|\bswitch(?:ing)? models?\b|\bcheaper models?\b|\bwhich model\b",
+               "catalog": r"\bmodel providers?\b|\binference providers?\b|\bopenai-compatible\b|\blocal models?\b"
+                          r"|\bollama\b|\bllama\.cpp\b|\bvllm\b|\bopenrouter\b",
+               "category": "models", "tools": []},
+    "hermes desktop": {"user": r"\bhermes desktop\b|\bdark mode\b|\blight mode\b|\b(?:colou?r|ui|desktop) themes?\b"
+                               r"|\bstatus ?bar\b|\bsidebar\b|\bcustomi[sz]\w* hermes\b",
+                       "catalog": r"\bhermes desktop\b|\bthemes?\b|\bstatus ?bar\b|\bside ?(?:bar|panel|pane)\b",
+                       "category": "desktop", "tools": []},
 }
 _USER = {t: re.compile(v["user"], re.IGNORECASE) for t, v in TOPICS.items()}
 _CATALOG = {t: re.compile(v["catalog"], re.IGNORECASE) for t, v in TOPICS.items()}
@@ -213,15 +275,18 @@ def build_profile(sessions: Iterable[tuple[dict[str, Any], list[dict[str, Any]]]
 # The one onboarding question, as jobs you might hire Hermes for. Each maps to topic words.
 JOBS = [
     ("Research, news and learning", ["news", "research", "learning"]),
-    ("Writing and social posts", ["writing", "linkedin"]),
-    ("Email and calendar", ["email", "calendar"]),
-    ("Coding and dev work", ["code", "github"]),
-    ("AI agents and automation", ["ai agents", "automation"]),
+    ("Writing, social posts and marketing", ["writing", "linkedin", "marketing"]),
+    ("Email, calendar and planning", ["email", "calendar", "planner"]),
+    ("Coding, dev work and data", ["code", "github", "docker", "databases"]),
+    ("AI agents, models and automation", ["ai agents", "automation", "model providers", "token costs"]),
     ("Notes, memory and knowledge", ["note-taking", "todo", "knowledge base"]),
-    ("Images, video, music and voice", ["images", "video", "music", "text-to-speech"]),
-    ("Shopping, travel and planning", ["shopping", "travel"]),
-    ("Money and finance", ["budget", "crypto"]),
+    ("Images, video, music and voice", ["images", "video", "music", "text-to-speech", "podcasts"]),
+    ("Shopping, travel, food and weather", ["shopping", "travel", "recipes", "weather"]),
+    ("Money, taxes and business", ["budget", "crypto", "taxes", "small business"]),
     ("Security and privacy", ["security", "privacy"]),
+    ("Design, 3D and games", ["figma", "3d", "games"]),
+    ("Health and fitness", ["health", "fitness"]),
+    ("Hermes Desktop themes and add-ons", ["hermes desktop"]),
 ]
 
 
@@ -234,7 +299,7 @@ def job_words(numbers: Iterable[int]) -> list[str]:
 
 
 SIGNAL_WEIGHT = {"memory": 2.0, "skill": 2.0, "interest": 3.0}  # things you chose to tell Hermes count more
-MAX_INTERESTS = 30  # enough for every onboarding choice at once (they add up to about 25 words)
+MAX_INTERESTS = 50  # enough for every onboarding choice at once (they add up to about 40 words)
 
 
 def _empty_topic() -> dict[str, Any]:
@@ -328,7 +393,9 @@ def _n(count: int, word: str) -> str:
     return f"{count} {word}" + ("" if count == 1 else "s")
 
 
-LABELS = {"ai agents": "AI agents", "knowledge": "memory and knowledge"}
+LABELS = {"ai agents": "AI agents", "knowledge": "memory and knowledge", "data": "data and databases",
+          "legal": "legal and tax", "models": "AI models and providers", "hermes desktop": "Hermes Desktop",
+          "design": "design and 3D", "audio": "podcasts and audio"}
 
 
 def label(topic: str) -> str:
@@ -368,13 +435,18 @@ def _evidence(topic: str, stats: dict[str, Any], profile: dict[str, Any]) -> str
 # Product and project names worth calling out when a plugin works with one you mention.
 NAMED = ("claude", "mcp", "spotify", "notion", "obsidian", "gmail", "outlook", "github", "slack",
          "discord", "telegram", "whatsapp", "signal", "strava", "garmin", "amazon", "zapier", "n8n",
-         "youtube", "linkedin", "google", "arxiv", "todoist", "home assistant")
+         "youtube", "linkedin", "google", "arxiv", "todoist", "home assistant", "docker", "kubernetes",
+         "figma", "canva", "blender", "godot", "unity", "unreal", "minecraft", "ollama", "openrouter", "trello",
+         "asana", "jira", "hubspot", "salesforce", "postgres", "sqlite")
 # Words too general to be a useful reason on their own.
 GENERIC = {"news", "research", "code", "memory", "remember", "recall", "forget", "learn", "learning",
            "explain", "security", "privacy", "writing", "write", "buy", "buying", "prices", "price",
            "schedule", "scheduled", "calendar", "trip", "trips", "travel", "automation", "automate",
            "music", "images", "image", "video", "videos", "budget", "email", "emails", "pdf", "maps",
-           "search the web", "websites", "website", "browse", "python", "script", "scripts", "bug", "bugs"}
+           "search the web", "websites", "website", "browse", "python", "script", "scripts", "bug", "bugs",
+           "design", "games", "game", "health", "weather", "recipes", "recipe", "food", "taxes", "tax", "marketing",
+           "databases", "database", "podcasts", "planner", "goals", "habits", "small business",
+           "model providers", "hermes desktop", "fitness", "dinner", "cooking", "legal", "sales", "customers"}
 
 
 _LABEL_PREFIX = re.compile(r"^[^:.]{0,60}\bfor Hermes(?: Agent| Desktop)?\s*[:\u2014\u2013-]\s*", re.IGNORECASE)
@@ -489,6 +561,9 @@ def _match_strength(topic: str, entry: dict[str, Any], profile: Optional[dict[st
     if pattern.search(head):
         return 2.0
     if pattern.search((entry.get("description") or "")[:300]):
+        return 1.0
+    category = TOPICS.get(topic, {}).get("category")
+    if category and entry.get("category") == category:  # the catalog files it under this topic
         return 1.0
     return 0.0
 

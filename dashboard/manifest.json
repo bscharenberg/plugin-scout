@@ -3,7 +3,7 @@
   "label": "Plugin Scout",
   "description": "Plugins that fit how you use Hermes, what each does with your data, and a check of your setup.",
   "icon": "Sparkles",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "tab": {
     "path": "/plugin-scout",
     "position": "after:skills"

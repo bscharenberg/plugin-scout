@@ -144,8 +144,8 @@ class OnboardingTests(unittest.TestCase):
     def test_numbered_answers(self):
         out = self.plugin.run_interests(self.ctx, "1, 10")
         self.assertEqual(out["interests"], ["news", "research", "learning", "security", "privacy"])
-        everything = self.plugin.run_interests(self.ctx, ", ".join(str(n) for n in range(1, 11)))
-        for _, words in usage.JOBS:  # picking all ten keeps every word, security included
+        everything = self.plugin.run_interests(self.ctx, ", ".join(str(n) for n in range(1, len(usage.JOBS) + 1)))
+        for _, words in usage.JOBS:  # picking every choice keeps every word, security included
             for w in words:
                 self.assertIn(w, everything["interests"])
         self.plugin.run_interests(self.ctx, "clear")
@@ -167,7 +167,8 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("3. Plugins you may find useful", text)
         self.assertIn("Nothing is installed unless you run the command yourself.", text)
         self.assertIn("10. Security and privacy", text)
-        self.assertIn("2. Writing and social posts", text)
+        self.assertIn("2. Writing, social posts and marketing", text)
+        self.assertIn("13. Hermes Desktop themes and add-ons", text)
         pick = {"name": "cloudflare-web-search", "title": "Cloudflare Web Search", "confidence": "strong match",
                 "install": "hermes plugins install cloudflare-web-search",
                 "heads_up": "It needs web.cache_enabled: false. Yours is true."}
