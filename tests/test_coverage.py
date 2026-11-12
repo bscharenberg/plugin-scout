@@ -1,8 +1,11 @@
 """Topics added after the catalog passed 2,100 plugins: real wording matches, look-alike wording does not.
 
-Every look-alike below was a wrong match found by scanning the live catalog on Nov 12, 2026.
+Every look-alike below was a wrong match found by scanning the live catalog on Nov 12, 2026. The answer key in
+fixtures/coverage_labels.json holds plugins labelled by hand while reading every one the topics missed.
+To re-check against today's catalog: python3 -I scripts/coverage_scan.py
 """
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -60,10 +63,35 @@ class CatalogMatches(unittest.TestCase):
             "tasks": "Habits gives Hermes reflexes: the tool calls it repeats, grouped.",
             "food": "Genealogy research recipes for family history.",
             "coding": "One durable memory shared by Hermes, Claude Code and Codex.",
+            "career": "Resumes the paused job where it left off.",
+            "agent logs": "Paper trading ledger for agents.",
+            "agent checks": "Undo the last message.",
+            "smart home": "Approve risky actions from your phone, with a circuit breaker.",
+            "servers and networks": "Secret firewall for keys and seed phrases.",
+            "research": "Paper trading for research.",
+            "finance": "Post-quantum crypto guard.",
             "security": "Messenger gateway with media attachments and allowlists.",
         }
         for topic, text in cases.items():
             self.assertNotIn(topic, _topics(_entry(text)), f"{topic}: {text}")
+
+
+class AnswerKey(unittest.TestCase):
+    KEY = json.loads((Path(__file__).resolve().parent / "fixtures" / "coverage_labels.json").read_text())
+
+    def test_every_labelled_plugin_reaches_its_topic(self):
+        wrong = [f"{x['name']} -> {x['topic']}" for x in self.KEY["labels"] if x["topic"] not in _topics(x)]
+        self.assertEqual(wrong, [])
+
+    def test_one_off_plugins_stay_out(self):
+        # Read and left out on purpose; if a new pattern reaches one, look at whether that pattern is too broad.
+        reached = [x["name"] for x in self.KEY["left_out"] if _topics(x)]
+        self.assertEqual(reached, [])
+
+    def test_key_covers_the_new_topics(self):
+        labelled = {x["topic"] for x in self.KEY["labels"]}
+        for t in ("agent checks", "agent logs", "plugins and skills", "servers and networks", "career", "movies and books"):
+            self.assertIn(t, labelled)
 
 
 class UserWording(unittest.TestCase):
@@ -82,6 +110,12 @@ class UserWording(unittest.TestCase):
             "token costs": "my token usage is too high this week",
             "hermes desktop": "can I get dark mode in hermes desktop",
             "tasks": "plan my week around my goals",
+            "agent checks": "it said it was done but the tests fail, double-check its work",
+            "agent logs": "why did hermes stop, show me the logs",
+            "plugins and skills": "help me build a plugin for my own skills",
+            "servers and networks": "my wireguard vpn is down again",
+            "career": "tailor my resume for this job application",
+            "movies and books": "what movie should I watch on plex",
         }
         for topic, text in cases.items():
             self.assertIn(topic, usage.build_profile([_session(text)], now=NOW)["topics"], topic)
@@ -100,7 +134,9 @@ class Onboarding(unittest.TestCase):
     def test_choices_reach_the_new_topics(self):
         topics = usage.add_signals(usage.build_profile([], now=NOW),
                                    interests=usage.job_words(range(1, len(usage.JOBS) + 1)))["topics"]
-        for t in ("design", "games", "health", "models", "hermes desktop", "food", "legal", "data", "token costs"):
+        for t in ("design", "games", "health", "models", "hermes desktop", "food", "legal", "data", "token costs",
+                  "agent logs", "agent checks", "plugins and skills", "servers and networks", "career",
+                  "movies and books", "smart home"):
             self.assertIn(t, topics, t)
 
 

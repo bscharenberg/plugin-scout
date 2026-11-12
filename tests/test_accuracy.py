@@ -168,7 +168,7 @@ class OnboardingTests(unittest.TestCase):
         self.assertIn("Nothing is installed unless you run the command yourself.", text)
         self.assertIn("10. Security and privacy", text)
         self.assertIn("2. Writing, social posts and marketing", text)
-        self.assertIn("13. Hermes Desktop themes and add-ons", text)
+        self.assertIn("13. Tuning Hermes: desktop, logs, checks and skills", text)
         pick = {"name": "cloudflare-web-search", "title": "Cloudflare Web Search", "confidence": "strong match",
                 "install": "hermes plugins install cloudflare-web-search",
                 "heads_up": "It needs web.cache_enabled: false. Yours is true."}

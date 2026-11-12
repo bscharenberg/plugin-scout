@@ -49,7 +49,7 @@ TOPICS: dict[str, dict[str, Any]] = {
     "smart home": {"user": r"\bhome assistant\b|\blights?\b|\bthermostat\b|\bsmart home\b",
                    "catalog": r"\bhome ?assistant\b|\bsmart home\b", "tools": []},
     "finance": {"user": r"\bstocks?\b|\bcrypto\b|\bbudget\b|\binvoices?\b|\bexpenses?\b",
-                "catalog": r"\bstocks?\b|\bcrypto\b|\bbudgeting\b|\bpersonal finance\b|\binvoic\w+|\bfinanc\w+", "tools": []},
+                "catalog": r"\bstocks?\b|(?<!quantum )\bcrypto\b(?! guard)|\bbudgeting\b|\bpersonal finance\b|\binvoic\w+|\bfinanc\w+", "tools": []},
     "research": {"user": r"\bpapers?\b|\barxiv\b|\bresearch\b|\bcitations?\b",
                  "catalog": r"\barxiv\b|\bresearch papers?\b|\bscholar\b|\bcitations?\b", "tools": []},
     "web": {"user": r"\bsearch (the )?web\b|\bgoogle\b|\bwebsites?\b|\bbrowse\b|\bscrape\b",
@@ -103,7 +103,8 @@ TOPICS: dict[str, dict[str, Any]] = {
     "data": {"user": r"\bsql\b|\bdatabases?\b|\bpostgres\w*|\bsqlite\b|\bdata analysis\b|\bdatasets?\b|\bcharts?\b",
              "catalog": r"\bsql\b|\b(?:your|query|sql|postgres\w*|mysql) databases?\b|\bdatabases? (?:quer\w+|schemas?|admin\w*)\b"
                         r"|\bmysql\b|\bmariadb\b|\bduckdb\b|\bbigquery\b|\bsnowflake\b"
-                        r"|\bdata analysis\b|\bdata warehouse\b|\bdatasets?\b|\bcharts?\b|\bdata vi[sz]\w*",
+                        r"|\bdata analysis\b|\bdata warehouse\b|\b(?:ml|training|open|public) datasets?\b|\bcharts?\b"
+                        r"|\bdata vi[sz]\w*",
              "tools": []},
     "design": {"user": r"\bfigma\b|\bcanva\b|\blogos?\b|\bmockups?\b|\bwireframes?\b|\bui design\b|\bgraphic design\b"
                        r"|\bdesign systems?\b|\b3d\b|\bblender\b|\bcad\b|\bposters?\b",
@@ -144,17 +145,146 @@ TOPICS: dict[str, dict[str, Any]] = {
                                r"|\bcontext (?:window|compression|compaction|overhead|bloat)\b|\bcompaction\b|\bcost tracking\b"
                                r"|\bspend (?:tracking|limits?|caps?)\b|\bquotas?\b",
                     "tools": []},
-    # Plugins for Hermes itself. The catalog's own category is the clearest signal for these.
+    # Plugins for Hermes itself. The catalog's own category (CATEGORY_TOPIC below) is the clearest signal.
     "models": {"user": r"\bollama\b|\blm studio\b|\blocal (?:llms?|models?)\b|\bopenrouter\b|\bmodel providers?\b"
                        r"|\bswitch(?:ing)? models?\b|\bcheaper models?\b|\bwhich model\b",
                "catalog": r"\bmodel providers?\b|\binference providers?\b|\bopenai-compatible\b|\blocal models?\b"
                           r"|\bollama\b|\bllama\.cpp\b|\bvllm\b|\bopenrouter\b",
-               "category": "models", "tools": []},
+               "tools": []},
     "hermes desktop": {"user": r"\bhermes desktop\b|\bdark mode\b|\blight mode\b|\b(?:colou?r|ui|desktop) themes?\b"
                                r"|\bstatus ?bar\b|\bsidebar\b|\bcustomi[sz]\w* hermes\b",
                        "catalog": r"\bhermes desktop\b|\bthemes?\b|\bstatus ?bar\b|\bside ?(?:bar|panel|pane)\b",
-                       "category": "desktop", "tools": []},
+                       "tools": []},
+    # Plugins about how Hermes itself behaves. Found by reading every plugin the topics above missed.
+    "agent checks": {"user": r"\bagent checks\b|\bhallucinat\w+|\bmade? (?:it|that|things) up\b|\bsaid it was done\b"
+                             r"|\bdouble[- ]check\w*|\bverify (?:its|the|your) work\b|\bdry[- ]run\b|\bundo\b",
+                     "catalog": r"\b(?:completion|success) claims?\b|\bclaims? (?:it|of success)\b|\bagent claims\b"
+                                r"|\bno proof\b|\b(?:evidence|completion|sealed) receipts?\b|\breceipts for agent\b"
+                                r"|\bverif(?:y|ies) (?:an agent's|the agent's|agent|completion|its own)\b|\bindependent verifier\b"
+                                r"|\bverifier \(?advisor\b|\bdry[- ]run\b|\brehears\w+|\bweaken\w* (?:the )?tests\b|\btests? pass\b"
+                                r"|\bregression (?:workbench|tests?|checks?)\b|\bputs? back files\b|\bplan mode\b"
+                                r"|\bagainst a (?:stored )?baseline\b|\bmakes? things up\b|\bscratch copy\b|\bthrowaway copy\b"
+                                r"|\bacceptance criteria\b|\bcontradictions\b|\balready failed\b|\bcheck its own work\b"
+                                r"|\bwhen it says it fixed\b|\bcave when you push back\b|\bdocs still match\b|\bpreset checks\b"
+                                r"|\bits own mistakes\b|\btest-result\b|\bpython stubs\b|\bends prematurely\b|\bunverified\b"
+                                r"|\bcan't call (?:a |it )?(?:\w+ )?(?:change )?done\b|\bearlier passes\b|\bsafety rating for ai agents\b"
+                                r"|\brates what the agent did\b",
+                     "tools": []},
+    "agent logs": {"user": r"\bagent logs\b|\blogs?\b|\bdebug\w*|\bwhat went wrong\b|\bwhy did (?:it|hermes|you)\b"
+                           r"|\bobservab\w+|\btraces?\b|\bwhat (?:is|are) (?:hermes|my agents?) doing\b",
+                   "catalog": r"\blocal ledger of\b|\b(?:approval|command|edit|error|stop|wait|reaction|call) ledger\b"
+                              r"|\blog files?\b|\bsession logs?\b|\bdashboard logs\b|\bevent log\b|\bdebugg\w+|\bdiagnostics\b"
+                              r"|\bobservab\w+|\btelemetry\b|\btraces?\b|\breplay\w*|\bpostmortems?\b"
+                              r"|\bshows? how (?:often|many|much)\b|\bactually doing\b|\bwaiting on you\b|\bblocked on you\b"
+                              r"|\bwhich skills\b|\bwhich copy of a command\b|\bsessions? as (?:local )?graphs\b"
+                              r"|\bsession sharing\b|\bevery hermes session is\b|\bwhen a session produces\b",
+                   "tools": []},
+    "plugins and skills": {"user": r"\b(?:hermes|my|own) skills?\b|\bsoul\.md\b|\bplugin (?:dev\w*|ideas?)\b"
+                                   r"|\b(?:make|build|write|create) (?:a |my own )?(?:hermes )?(?:plugin|skill)s?\b",
+                           "catalog": r"\bplugins? (?:dev\w*|authoring|generat\w+|scaffold\w*)\b|\bwrites? (?:a |the |your )?plugins?\b"
+                                      r"|\b(?:build|scaffold|generate)s? (?:hermes )?plugins\b|\bskill (?:versions?|library|libraries"
+                                      r"|authoring|routing|retrieval)\b|\bsoul\.md\b|\b(?:another|one local) (?:hermes )?plugin\b"
+                                      r"|\bsaves or rewrites a skill\b|\bauthoring and reviewing skills\b|\bskills? (?:you|your agent)\b"
+                                      r"|\bin a locked box\b|\bthrowaway child process\b|\bcapability wall\b|\bask for a plugin\b|\bscaffold\w*"
+                                      r"|\bfinds the plugins\b|\byour skills\b|\bsource skills\b",
+                           "tools": []},
+    "servers and networks": {"user": r"\bhome ?network\b|\bvpn\b|\bwireguard\b|\bdns\b|\bdisk space\b|\bbackups?\b"
+                                     r"|\bwindows (?:update|machine|pc)\b|\bsystemd\b|\bsysadmin\b|\bhomelab\b|\bmy servers?\b",
+                             "catalog": r"\bnetwork (?:capture|health|adapters?|traffic)\b|\bhome network\b|\bmesh network\w*"
+                                        r"|\bvpn\b|\bwireguard\b|\bdns\b|\bdisks?\b|\bdisk space\b|\bbackup (?:integrity|and restore)\b"
+                                        r"|\bbacks? up\b|\bon windows\b|\bwindows machine\b|\bsystemd\b|\bpm2\b|\bheadscale\b"
+                                        r"|\bpcap\w*|\bwindows firewall\b|\bfirewall rules?\b|\bhomelab\b"
+                                        r"|\bservice management\b|\bs3\b|\bcloud storage\b|\bros 2\b",
+                             "tools": []},
+    "career": {"user": r"\bjob (?:hunt\w*|search\w*|applications?|offers?)\b|\bmy (?:resume|cv)\b|\bjob interviews?\b|\binternships?\b"
+                       r"|\bcover letters?\b|\bcareer\b",
+               "catalog": r"\bjob (?:hunt\w*|search\w*|applications?)\b|\binternships?\b|\binterview prep\w*"
+                          r"|\bpractise any interview\b|\bjob interviews?\b|\bresume (?:review|builder|writing)\b"
+                          r"|\bcover letters?\b|\bcareers?\b|\bscholarships?\b|\bgrant applications?\b",
+               "tools": []},
+    "movies and books": {"user": r"\bmovies?\b|\bfilms?\b|\btv (?:shows?|series)\b|\bnetflix\b|\bplex\b|\bnovels?\b|\bepub\b"
+                                 r"|\bwatchlist\b|\banime\b|\bmanga\b|\bbooks? (?:i'm|i am) reading\b|\bjellyfin\b",
+                         "catalog": r"\bmovies?\b|\btv (?:shows?|series)\b|\bplex\b|\bjellyfin\b|\bepub\b|\bnovels?\b"
+                                    r"|\bmanga\b|\breading companion\b|\bfilms?\b",
+                         "tools": []},
 }
+
+# More wording for the topics above, found by reading each plugin they still missed in the live catalog
+# (Nov 12, 2026). Kept apart so each addition can be traced to that review; tests/test_coverage.py holds examples.
+MORE_CATALOG = {
+    # Disclosure notes name credentials and secrets in passing, so only secret-handling wording counts here.
+    "security": r"\bsecret (?:store|source|vault|manager|firewall|gate|leaks?|redactor)\b|\bsecrets? (?:out of|from leaving)\b"
+                r"|\bleaked credentials\b|\bfake credentials\b|\bcredential (?:formats|reads)\b|\bpii\b|\bpseudonymi[sz]\w+"
+                r"|\bredact(?:s|ion)\b|\b(?:terminal|execution) backend\b|\bmicrovm\b"
+                r"|\b(?:own|isolated|cloud|disposable) (?:\w+ )?sandbox\b|\btool permissions\b|\bper-control permissions\b"
+                r"|\brisky actions?\b|\bdangerous commands?\b|\bmalicious\b|\bpentest\w*|\b2fa\b|\bpasskeys?\b"
+                r"|\bpassword manager\b|\bcircuit breaker\b|\bkeychain\b|\b(?:encrypted|local) vault\b|\bopenbao\b"
+                r"|\binfisical\b|\bbitwarden\b|\bvaultwarden\b|\btaint\w*|\bscam\w*|\bfraud\b|\bshodan\b|\bhomographs?\b"
+                r"|\bcanary\b|\bpolicies for hermes tool calls\b|\bblock policies\b|\bevery tool call before it runs\b"
+                r"|\btool-call shape you denied\b|\bdefinition changed since you approved\b|\bembedded-secret\b"
+                r"|\bcredential paste\b",
+    "finance": r"\bwallets?\b|\bevm\b|\bsolana\b|\bon-chain\b|\bdex\b|\bdefi\b|\bstablecoins?\b|\busdc\b|\bbitcoin\b"
+               r"|\bairdrops?\b|\btrading\b|\bprediction markets?\b|\bpolymarket\b|\bportfolios?\b|\bx402\b|\bpayments?\b"
+               r"|\bbank statements?\b|\brecurring charges\b|\bmacro\b|\bget paid\b|\breconcil\w+",
+    "coding": r"\besp32\b|\barduino\b|\bxcode\b|\bjupyter\b|\bnotebooks\b|\bload test\w*|\bterraform\b"
+              r"|\b(?:library|developer) doc\w*|\bvibe ?coding\b|\bend-to-end tests?\b|\bopenapi\b|\bapi contracts?\b"
+              r"|\bpython scripts?\b|\bcoding threads\b|\bover-engineering\b|\bdevelopment lifecycle\b|\bios simulator\b"
+              r"|\bandroid emulator\b|\bcode (?:it|the agent) wr\w+|\bagent-written code\b|\bcoder workspace\b"
+              r"|\bbuild, run and test\b|\bpostgres backend\b|\bacp integration\b|\bterminal integration\b",
+    "smart home": r"\bgovee\b|\bswitchbot\b|\blights\b|\b3d printers?\b|\boctoprint\b|\bklipper\b|\bprinters?\b"
+                  r"|\brobot\w*|\bandroid (?:phone|device)s?\b|\bphone's senses\b|\bdrive a real phone\b"
+                  r"|\banalog circuit\b|\bcircuit (?:design|board)s?\b|\bspice\b|\bboardview\b|\bpcb\b|\belectronics\b",
+    "ai agents": r"\bagent-to-agent\b|\bother (?:ai )?agents\b|\bbetween agents\b|\bagents? (?:talk|message|exchange)\b"
+                 r"|\bcooperating hermes\b|\bai helpers\b|\bshared (?:mind|workspace)\b|\bcomputer[- ]use\b"
+                 r"|\bgive hermes a computer\b|\bremote hermes\b|\bpaired (?:desktop )?machines?\b|\bkanban\b"
+                 r"|\bprompt rewriting\b|\bimport-agent\b|\bpersonal agents\b|\bas one team\b",
+    "models": r"\bmodel (?:fleet|routing|router)\b|\bpicks? an llm\b|\blocal delegation\b|\bmodel endpoints?\b"
+              r"|\bprovider calls\b|\btime to first\b",
+    "tasks": r"\bproject tracking\b|\bpersonal planning\b|\blinear issues\b|\bwhat you asked and promised\b"
+             r"|\bdeadline\w*|\bdecompos\w+",
+    "calendar": r"\bpublic holidays\b|\bworkdays?\b|\balarms?\b",
+    "chat apps": r"\btelegram\b|\bzalo\b|\bwechat\b|\bfeishu\b|\blark\b|\bimessage\b|\bsms\b|\bgroup chat\b|\bsocial inbox\b",
+    "research": r"\bzotero\b|\b(?:scientific |research )?papers\b|\bpaper links?\b|\bresearch notes\b|\bstatistics\b"
+                r"|\bcountry risk\b",
+    "maps": r"\b(?:road|highway|live) traffic\b|\btraffic (?:events|incidents)\b|\bhighways?\b|\bdriving\b|\bsatellite\b"
+            r"|\bsentinel-2\b|\bvegetation\b",
+    "travel": r"\broad[- ]trips?\b|\bplace to sleep\b|\breservation\b",
+    "business": r"\bfreshdesk\b|\bfundrais\w+|\binvestors?\b|\btenders?\b|\bcompany information\b|\bpageviews\b"
+                r"|\bweb analytics\b|\bcross-cultural business\b|\bfreight\b|\binsurance\b|\bvehicle (?:fleet|csv)\b",
+    "documents": r"\bcsv\b|\bxlsx\b|\bhtml (?:pages?|reports?)\b|\bfax\w*|\bfinished documents\b|\bartifacts?\b|\bprinting\b",
+    "data": r"\bmachine learning\b|\btabular\b|\bsafetensors\b|\bgpus?\b",
+    "health": r"\bself-reflection\b|\bday of rest\b|\bshort break\b|\bwellbeing\b|\bwhoop\b|\bhrv\b|\bheart rate\b"
+              r"|\bapple health\b|\bfrustrat\w+|\bhealth-data\b|\bpsychometric\b",
+    "music": r"\bguitar\b|\b(?:hip-hop|music) producer\b|\bamplitube\b|\blyrics\b",
+    "video": r"\bdavinci resolve\b|\bvideo edit\w*",
+    "images": r"\bphotos?\b|\bstickers?\b",
+    "design": r"\bembroidery\b|\bfashion design\b|\bfrontend design\b|\bweb(?:site)? design\b|\bdesign references\b"
+              r"|\bproduct design\b|\busability\b|\bviewport\b|\bweb ui\b",
+    "games": r"\bworld of warcraft\b|\bdoom\b|\bvirtual pets?\b",
+    "learning": r"\bvocabulary\b|\bhomework\b|\bspaced (?:repetition|review|practice)\b",
+    "knowledge": r"\bfacts? ledger\b|\btyped-facts\b|\bcapability index\b|\bmarkdown metadata\b|\bshared lessons\b",
+    "token costs": r"\bcontext (?:engine|references?|optimi[sz]\w+|occupancy)\b|\b(?:big|large|oversized|repeated|old)"
+                   r" tool (?:outputs?|results?)\b|\btool (?:outputs?|results?) (?:shrink|before)\w*|\bcompresses older\b"
+                   r"|\bcompact successful\b|\btool-schema\b|\bprompt cache\b|\bdate and time\b|\btime(?:zone|-gap)\b"
+                   r"|\bsession boundaries\b|\bprogress checkpoints?\b|\bwork-state checkpoint\b|\bhandover\b|\brecency\b"
+                   r"|\busage window\b|\b(?:model|llm|api|token|request|daily) (?:costs?|spend)\b"
+                   r"|\bcost (?:ledger|meter|forecast\w*|estimates?)\b|\bwhat each session cost\b|\bover budget\b"
+                   r"|\bbudget guard\w*|\bdollar figures\b",
+    "hermes desktop": r"\blanguage pack\b|\bui translation\b|\bfollow-up (?:question )?chips\b",
+}
+MORE_USER = {
+    "smart home": r"\bprinters?\b|\brobot\w*|\bmy phone\b|\bandroid\b|\barduino\b|\besp32\b",
+    "finance": r"\bwallets?\b|\btrading\b|\bpolymarket\b|\bportfolio\b",
+}
+for _topic, _extra in MORE_CATALOG.items():
+    TOPICS[_topic]["catalog"] += "|" + _extra
+for _topic, _extra in MORE_USER.items():
+    TOPICS[_topic]["user"] += "|" + _extra
+
+# The catalog files every plugin under one category. Where a category is itself one of Scout's topics, it
+# counts as a weaker match, so plugins whose descriptions use none of the topic's words are still reachable.
+CATEGORY_TOPIC = {"models": "models", "desktop": "hermes desktop", "platform": "chat apps",
+                  "memory": "knowledge", "web": "web", "voice": "voice", "automation": "automation"}
 _USER = {t: re.compile(v["user"], re.IGNORECASE) for t, v in TOPICS.items()}
 _CATALOG = {t: re.compile(v["catalog"], re.IGNORECASE) for t, v in TOPICS.items()}
 _TOOL_TOPIC = {tool: t for t, v in TOPICS.items() for tool in v["tools"]}
@@ -277,16 +407,16 @@ JOBS = [
     ("Research, news and learning", ["news", "research", "learning"]),
     ("Writing, social posts and marketing", ["writing", "linkedin", "marketing"]),
     ("Email, calendar and planning", ["email", "calendar", "planner"]),
-    ("Coding, dev work and data", ["code", "github", "docker", "databases"]),
+    ("Coding, dev work and data", ["code", "github", "docker", "databases", "home network"]),
     ("AI agents, models and automation", ["ai agents", "automation", "model providers", "token costs"]),
     ("Notes, memory and knowledge", ["note-taking", "todo", "knowledge base"]),
-    ("Images, video, music and voice", ["images", "video", "music", "text-to-speech", "podcasts"]),
+    ("Images, video, music, voice and movies", ["images", "video", "music", "text-to-speech", "podcasts", "movies"]),
     ("Shopping, travel, food and weather", ["shopping", "travel", "recipes", "weather"]),
-    ("Money, taxes and business", ["budget", "crypto", "taxes", "small business"]),
+    ("Money, business and career", ["budget", "crypto", "taxes", "small business", "job search"]),
     ("Security and privacy", ["security", "privacy"]),
     ("Design, 3D and games", ["figma", "3d", "games"]),
-    ("Health and fitness", ["health", "fitness"]),
-    ("Hermes Desktop themes and add-ons", ["hermes desktop"]),
+    ("Health, fitness and home", ["health", "fitness", "smart home"]),
+    ("Tuning Hermes: desktop, logs, checks and skills", ["hermes desktop", "agent logs", "agent checks", "hermes skills"]),
 ]
 
 
@@ -299,7 +429,7 @@ def job_words(numbers: Iterable[int]) -> list[str]:
 
 
 SIGNAL_WEIGHT = {"memory": 2.0, "skill": 2.0, "interest": 3.0}  # things you chose to tell Hermes count more
-MAX_INTERESTS = 50  # enough for every onboarding choice at once (they add up to about 40 words)
+MAX_INTERESTS = 60  # enough for every onboarding choice at once (they add up to about 50 words)
 
 
 def _empty_topic() -> dict[str, Any]:
@@ -395,7 +525,9 @@ def _n(count: int, word: str) -> str:
 
 LABELS = {"ai agents": "AI agents", "knowledge": "memory and knowledge", "data": "data and databases",
           "legal": "legal and tax", "models": "AI models and providers", "hermes desktop": "Hermes Desktop",
-          "design": "design and 3D", "audio": "podcasts and audio"}
+          "design": "design and 3D", "audio": "podcasts and audio", "token costs": "context and token costs",
+          "smart home": "smart home and devices", "agent logs": "agent logs and debugging",
+          "agent checks": "checking Hermes's work"}
 
 
 def label(topic: str) -> str:
@@ -446,7 +578,8 @@ GENERIC = {"news", "research", "code", "memory", "remember", "recall", "forget",
            "search the web", "websites", "website", "browse", "python", "script", "scripts", "bug", "bugs",
            "design", "games", "game", "health", "weather", "recipes", "recipe", "food", "taxes", "tax", "marketing",
            "databases", "database", "podcasts", "planner", "goals", "habits", "small business",
-           "model providers", "hermes desktop", "fitness", "dinner", "cooking", "legal", "sales", "customers"}
+           "model providers", "hermes desktop", "fitness", "agent logs", "agent checks",
+           "hermes skills", "home network", "job search", "movies", "smart home", "logs", "debug", "dinner", "cooking", "legal", "sales", "customers"}
 
 
 _LABEL_PREFIX = re.compile(r"^[^:.]{0,60}\bfor Hermes(?: Agent| Desktop)?\s*[:\u2014\u2013-]\s*", re.IGNORECASE)
@@ -562,8 +695,7 @@ def _match_strength(topic: str, entry: dict[str, Any], profile: Optional[dict[st
         return 2.0
     if pattern.search((entry.get("description") or "")[:300]):
         return 1.0
-    category = TOPICS.get(topic, {}).get("category")
-    if category and entry.get("category") == category:  # the catalog files it under this topic
+    if CATEGORY_TOPIC.get(entry.get("category") or "") == topic:  # the catalog files it under this topic
         return 1.0
     return 0.0
 

@@ -1,0 +1,1684 @@
+{
+ "source": "https://hermes-agent.nousresearch.com/docs/api/plugin-catalog.json",
+ "captured": "2026-11-12",
+ "note": "Hand-labelled while reading every plugin Scout's topics missed. Descriptions are the first 300 characters, as Scout reads them.",
+ "labels": [
+  {
+   "name": "proofgate",
+   "title": "ProofGate",
+   "category": "tools",
+   "description": "No proof, no done. Verifies an agent's completion claims (file created, message sent, command ran, tests passed, figures quoted) against the tool evidence recorded in the same session, before the final reply is delivered. Unproven claims are flagged as unverified or withheld, fail closed, and every ",
+   "topic": "agent checks"
+  },
+  {
+   "name": "claim-check",
+   "title": "claim-check",
+   "category": "tools",
+   "description": "Receipts for agent claims: checks the success claims in each final reply (\"all tests pass\", \"I created src/app.py\", \"committed and pushed\", \"installed requests\", \"ran make build successfully\", \"server is running on port 8000\") against the session's actual tool results and appends a \u2705 verified / \u26a0\ufe0f u",
+   "topic": "agent checks"
+  },
+  {
+   "name": "say-do-gate",
+   "title": "",
+   "category": "general",
+   "description": "Checks agent claims against what actually ran this turn. Deterministic, zero tokens.",
+   "topic": "agent checks"
+  },
+  {
+   "name": "goalpost",
+   "title": "Goalpost",
+   "category": "tools",
+   "description": "Stops an AI agent from making tests pass by weakening the tests. Before a test-file edit or a test command that hides failures runs, Goalpost reads the change and blocks it: adding a skip or xfail marker, deleting a test, removing an assertion, or appending \"|| true\", \"--exit-zero\" or \"--no-verify\".",
+   "topic": "agent checks"
+  },
+  {
+   "name": "proveit-tests",
+   "title": "ProveIt Tests",
+   "category": "tools",
+   "description": "Flags recognizable ways an agent weakens tests to reach green: removed or loosened asserts, skip/xfail/.only, deleted tests, expected literals rewritten to match failing output, assert True and tautologies, try/except pass wrappers, and test-runner escape hatches (pytest || true, -k \"not ...\", --des",
+   "topic": "agent checks"
+  },
+  {
+   "name": "contract-necromancer",
+   "title": "Done only when your tests pass",
+   "category": "tools",
+   "description": "Hermes's done doesn't count until your tests pass. Type /necro freeze in your project: it finds your tests and the command that runs them, writes necro.toml, locks the test files and the settings that choose what runs by hash, and runs them once to say where they stand. When Hermes says it is finish",
+   "topic": "agent checks"
+  },
+  {
+   "name": "track-record",
+   "title": "Track Record",
+   "category": "tools",
+   "description": "How often is your agent right when it says it fixed something? Each reply that claims success (\"this fixes it\", \"this should work\") is logged with how sure it sounded, then checked against your next message and any test or build run in the next turn. /trackrecord shows hit rate per confidence level ",
+   "topic": "agent checks"
+  },
+  {
+   "name": "glance",
+   "title": "Glance",
+   "category": "tools",
+   "description": "Hermes can't call a UI change done until it has looked. Glance screenshots the running iOS Simulator (or Android emulator) right before the agent's first UI edit, diffs it against the screen after the edit, and the pre_verify hook sends the agent back when the edit changed nothing, crashed to an err",
+   "topic": "agent checks"
+  },
+  {
+   "name": "visual-gate",
+   "title": "Visual Gate",
+   "category": "tools",
+   "description": "Lets Hermes check the web UI it just built. Drives a real headless Chrome, diffs the page against a stored baseline and audits WCAG 2.2 AA on the same render, then returns one PASS or FAIL with changed regions, computed contrast ratios and exact CSS selectors. A page that failed to load is an error,",
+   "topic": "agent checks"
+  },
+  {
+   "name": "docs-drift",
+   "title": "Docs Drift",
+   "category": "tools",
+   "description": "Checks that the README and Markdown docs still match the code after the agent edits files. When a write_file or patch call leaves the docs naming a command-line flag, environment variable, default value, npm script, make target or file that the code no longer has, the tool result gets a docs_drift b",
+   "topic": "agent checks"
+  },
+  {
+   "name": "deja-fix",
+   "title": "Deja Fix",
+   "category": "tools",
+   "description": "Stops the agent from putting back code that already failed. Every version of every file it writes in a session is fingerprinted and judged by the next test or build run, or by the user saying \"still broken\". An edit that would recreate a failed version is stopped once, naming when it failed and why;",
+   "topic": "agent checks"
+  },
+  {
+   "name": "completion-proof",
+   "title": "",
+   "category": "tools",
+   "description": "Revision-bound receipts for operator-configured checks; changed source, tests or artifacts make earlier passes stale. Disclosure \u2014 proof_verify, `/proof verify` and `hermes completion-proof verify` run the check commands the user configures (argv, no shell) in the configured workspace with the user'",
+   "topic": "agent checks"
+  },
+  {
+   "name": "show-your-work",
+   "title": "Show Your Work",
+   "category": "tools",
+   "description": "An evidence board for a change's acceptance criteria: which requirements your agent actually tested, what the imported results say, whether they still match the code, and whether you signed off. Point it at the requirements you already have (a ticket, bug report or spec in Markdown) and it shows fou",
+   "topic": "agent checks"
+  },
+  {
+   "name": "crash-test",
+   "title": "Crash Test",
+   "category": "tools",
+   "description": "A safety rating for AI agents. For one armed turn it breaks tools the way real systems break (timeouts, outages, empty or cut-off results), then rates what the agent did: retried, worked around it, told the truth, or claimed success anyway. 1-5 stars and an HTML report, comparable across models by s",
+   "topic": "agent checks"
+  },
+  {
+   "name": "bluff",
+   "title": "Bluff",
+   "category": "tools",
+   "description": "Does your model make things up? Bluff asks about things that sound real but don't exist (Python functions, built-in exceptions, chemical elements), mixed with real ones and phrased as if they all exist, and checks whether the model admits the made-up ones aren't real. The result is a bluff rate, wit",
+   "topic": "agent checks"
+  },
+  {
+   "name": "spine",
+   "title": "Spine",
+   "category": "tools",
+   "description": "Does your model cave when you push back? Spine asks questions with one exact answer, then tells the model, confidently, that a plausible wrong answer is right, and checks whether it holds its ground. The result is a Spine score, the share of correct answers it kept, under polite, firm or authority p",
+   "topic": "agent checks"
+  },
+  {
+   "name": "hermes-verifier",
+   "title": "",
+   "category": "tools",
+   "description": "Attach an independent verifier (advisor) model to your Hermes session: it reviews each primary-agent turn delta, raises findings (note / caution / blocker), and can steer a blocker back into the session before the primary agent goes wrong. Read-only tool access (read_file, search_files) is available",
+   "topic": "agent checks"
+  },
+  {
+   "name": "truthgate",
+   "title": "TruthGate",
+   "category": "tools",
+   "description": "Deterministic final-turn verification for newly introduced Python stubs and common embedded-secret patterns, using pre-edit baselines and at most two corrective continuations. Standard-library-only, fail-open, and no network, subprocess, LLM, approval-bypass, or core-patching behavior. Disclosure --",
+   "topic": "agent checks"
+  },
+  {
+   "name": "turn-completion-nudge",
+   "title": "",
+   "category": "tools",
+   "description": "Nudges the agent to continue when a turn ends prematurely (planning or announcing next steps it has not done). Fail-open: never blocks a turn. Disclosure \u2014 when the user sets `send_turn_text: true`, clipped turn text (about 1,200 chars of the user request and 1,500 chars of the assistant reply) is s",
+   "topic": "agent checks"
+  },
+  {
+   "name": "dress-rehearsal",
+   "title": "Dress Rehearsal",
+   "category": "tools",
+   "description": "Rehearse a task before it touches anything: /rehearse on, then give Hermes the job. Reads run for real; every side effect (file writes and edits, modifying shell commands, messages, schedules, any tool not on a read-only list) is recorded into a numbered script instead of running. /rehearse shows th",
+   "topic": "agent checks"
+  },
+  {
+   "name": "ghost-run",
+   "title": "Ghost Run",
+   "category": "tools",
+   "description": "Dry-run mode for Hermes Agent. With /ghost on, file writes, patches, deletes and terminal commands are redirected into a throwaway copy of the working folder, and network-touching tools and commands are blocked. Review the diff in the system browser (hermes ghost ui; the Desktop pane only opens that",
+   "topic": "agent checks"
+  },
+  {
+   "name": "stage",
+   "title": "",
+   "category": "tools",
+   "description": "Stage Hermes write_file and patch calls in a scratch copy. Original files stay unchanged until stage_apply. Disclosure \u2014 while enabled, write_file and patch land in a scratch copy under the Hermes plugin-data directory and the real files change only when the model calls stage_apply (the model can ap",
+   "topic": "agent checks"
+  },
+  {
+   "name": "undo-effects",
+   "title": "Undo Effects",
+   "category": "tools",
+   "description": "Puts back files an agent deleted or overwrote: before write_file, patch and destructive terminal commands (rm, mv, cp, redirects, tee, sed -i, find -delete) it saves the affected files to a local store and lets the tool run unchanged; /undo-effects lists the effects and restores them, refusing to ov",
+   "topic": "agent checks"
+  },
+  {
+   "name": "afterforge",
+   "title": "",
+   "category": "tools",
+   "description": "Local-first regression workbench turning agent failures and corrections into reviewed, evidence-backed checks.",
+   "topic": "agent checks"
+  },
+  {
+   "name": "plan-mode",
+   "title": "Plan mode",
+   "category": "tools",
+   "description": "Plan mode for Hermes Agent: it explores read-only and writes a plan, and its edit tools stay blocked until you approve. Approval comes as a Claude Code-style card; Hermes' Codex app-server runtime and TUI /background and btw side agents are outside the block (see the Disclosure). It works on every i",
+   "topic": "agent checks"
+  },
+  {
+   "name": "precog",
+   "title": "",
+   "category": "tools",
+   "description": "Hermes stops repeating its own mistakes: learns every terminal command that failed for an environment reason (missing module, command not found, wrong package manager, bad flag, missing path) and the command that fixed it, then fixes the same mistake before it runs again, in any session, with no ext",
+   "topic": "agent checks"
+  },
+  {
+   "name": "lastgood",
+   "title": "LastGood",
+   "category": "tools",
+   "description": "LastGood records which of your preset checks passed on which tested state, and what restoring files will not undo. Checks you choose (file opens, words present, files exist, page loads) run after write_file or patch in an opted-in project, and on demand via /lastgood and /blame. Results are PASS, FA",
+   "topic": "agent checks"
+  },
+  {
+   "name": "proofops",
+   "title": "ProofOps",
+   "category": "tools",
+   "description": "Verification for AI agent completion claims: turn \"the agent said done\" into a sealed receipt of what was checked, what was observed, and what passing does NOT prove. Hermes runs a declared plan of read-only checks against a live service, a deliverable or a system of record, and gets a receipt: each",
+   "topic": "agent checks"
+  },
+  {
+   "name": "approval-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of Hermes's approval prompts (dangerous commands, protected writes, MCP consent, smart-mode verdicts): /approval-log shows how often each rule asked, how many prompts were approved, denied or left unanswered, and how long a person took to answer, per rule, per surface or per day, for th",
+   "topic": "agent logs"
+  },
+  {
+   "name": "aux-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of Hermes's auxiliary LLM calls (titling, compression, vision, approval): /aux shows tokens, time and failures per task, model, provider or day, or lists the newest calls (ten, or up to 100 with /aux recent 50), for the last 24 hours, any number of hours or days, the latest session or e",
+   "topic": "agent logs"
+  },
+  {
+   "name": "command-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of the slash commands you run in Hermes (built-in commands in the CLI, built-in and plugin commands on messaging platforms): /command-log shows how often each command was used, its share, in how many sessions and when last, per command, platform, surface or day, for the last 24 hours, a",
+   "topic": "agent logs"
+  },
+  {
+   "name": "edit-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of the turns in which the agent changed files with write_file or patch: /edit-log shows how many turns changed files, how many files in all, the median per turn, the most changed file type and how long ago the last one was, per model, platform or day, a table of file types (extensions),",
+   "topic": "agent logs"
+  },
+  {
+   "name": "error-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of failed provider calls (rate limits, overloads, timeouts, context overflows): /errors shows how many attempts failed per model, provider or cause, how many Hermes could retry, and the most common HTTP status, for the last 24 hours, any number of hours or days, the latest session or ev",
+   "topic": "agent logs"
+  },
+  {
+   "name": "interim-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of the messages models write in the middle of a turn, before their final answer (the text that comes with a tool call, which on chat platforms can arrive as messages of their own): /interim-log shows how many each model wrote, in how many turns, how many per such turn, their median leng",
+   "topic": "agent logs"
+  },
+  {
+   "name": "stop-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of the turns you stopped while Hermes was still working (/stop, or /new and /reset during a running turn, on messaging platforms, the TUI and the desktop app): /stop-log shows how many running turns were stopped, how many by /stop and by /new, in how many sessions and how long ago the l",
+   "topic": "agent logs"
+  },
+  {
+   "name": "wait-ledger",
+   "title": "",
+   "category": "tools",
+   "description": "Local ledger of the times Hermes stopped to wait for you (approval prompts, clarify questions, password prompts): /waits shows how many waits there were, how many were answered or left unanswered, and how long Hermes stood still in total, typically and at most, per kind of prompt, per platform or pe",
+   "topic": "agent logs"
+  },
+  {
+   "name": "agent-run-debugger",
+   "title": "",
+   "category": "tools",
+   "description": "Local-first evidence debugger for failed, stalled or expensive agent runs: import one explicitly selected trace and get a deterministic timeline, observed failure points, ranked hypotheses that cite their evidence, missing-evidence gaps and an inert replay of the recorded run. Disclosure \u2014 imports a",
+   "topic": "agent logs"
+  },
+  {
+   "name": "ariadne",
+   "title": "Ariadne",
+   "category": "tools",
+   "description": "Record a Hermes session once, then replay it with no model, no network and no tokens to see exactly what Hermes does differently: check whether updating Hermes is safe by replaying your own sessions (with your plugins loaded) on the new version, replay on a new build, compare two installs, bisect th",
+   "topic": "agent logs"
+  },
+  {
+   "name": "mulligan",
+   "title": "Mulligan",
+   "category": "tools",
+   "description": "Counterfactual replay for Hermes: record a run, rewind to any step, edit one tool decision, replay forward in a fresh child session, and diff the branch against the original. Replay-to-point reproduces the recorded steps with zero provider calls and zero tool side effects; the branch runs live with ",
+   "topic": "agent logs"
+  },
+  {
+   "name": "session-cassettes",
+   "title": "Session Cassettes",
+   "category": "tools",
+   "description": "Record one good session's read-only tool results as a cassette, pin the facts a good answer must contain, then replay the same request against another model, prompt or skill: tool_execution middleware answers every tool call of the replayed turn from the recording (exact hit, or a search/slice of a ",
+   "topic": "agent logs"
+  },
+  {
+   "name": "hermes-flow",
+   "title": "",
+   "category": "general",
+   "description": "Reconstruct Hermes agent sessions as local graphs and compare them with trusted paths. Disclosure \u2014 reads the profile's state.db read-only and writes reports only where you point it; the optional bundled customer_review example, when you run it yourself, installs and enables a demo plugin and demo s",
+   "topic": "agent logs"
+  },
+  {
+   "name": "hermes-telemetry-dashboard",
+   "title": "",
+   "category": "general",
+   "description": "Dashboard-only read plugin: visualize the shared-metrics telemetry Hermes collects locally \u2014 metric families, drilldowns, milestone timeline, install snapshot, and the exact next package payload. Send stays off.",
+   "topic": "agent logs"
+  },
+  {
+   "name": "muster",
+   "title": "Muster",
+   "category": "tools",
+   "description": "See what your AI helpers are actually doing. Every worker hermes starts shows up live in one pane: working, stuck (silent too long), failing on repeat, or gone (hermes crashed). Stop a stuck one or send it a message with one click. Start your own helpers with muster_fanout. /muster-digest reports st",
+   "topic": "agent logs"
+  },
+  {
+   "name": "doctorpack",
+   "title": "",
+   "category": "tools",
+   "description": "Local-first diagnostics, safety audit, and incident postmortems for Hermes Agent.",
+   "topic": "agent logs"
+  },
+  {
+   "name": "hermes-guide",
+   "title": "",
+   "category": "tools",
+   "description": "Read-only diagnostics for Hermes configuration: /hermes-doctor in-session and hermes guide in a terminal. Twelve read-only health checks (config, mcp, skills, commands, hooks, plugins, memories, sessions, storage, dashboard, update, gateway) and points to 32 troubleshooting skills, installed separat",
+   "topic": "agent logs"
+  },
+  {
+   "name": "which-copy",
+   "title": "Which Copy",
+   "category": "tools",
+   "description": "Answers the question that silently decides everything else: which copy of a command is the Hermes process actually going to run? On a Mac the same tool can exist five times over \u2014 a Homebrew formula, an npm global install, a pyenv shim, a standalone download, and Hermes's own bundled copy \u2014 and the ",
+   "topic": "agent logs"
+  },
+  {
+   "name": "waiting-on-you",
+   "title": "Waiting on You",
+   "category": "tools",
+   "description": "One list of the questions your Hermes bots are waiting on you to answer. /waiting and hermes waiting scan profile session stores, keep only replies that end by asking you something (English and Indonesian), merge the same question asked by several bots, and drop an item once you reply in that chat o",
+   "topic": "agent logs"
+  },
+  {
+   "name": "unbl0ck",
+   "title": "UNBL0CK",
+   "category": "tools",
+   "description": "One queue of everything blocked on you: live agent prompts, pairing requests, blocked Kanban cards and chats on any platform that ask you something. Answer Kanban cards in place; optional one-line summaries and Ask send item text to your configured model through ctx.llm (both can be turned off). Dis",
+   "topic": "agent logs"
+  },
+  {
+   "name": "logmine",
+   "title": "Logmine",
+   "category": "tools",
+   "description": "Exact, local intelligence over large text log files. log_summarize mines the file into recurring message templates (masking numbers, IPs, UUIDs, hashes, quoted strings and timestamps so near-identical lines collapse into one ranked pattern with an exact count), plus a level histogram and the detecte",
+   "topic": "agent logs"
+  },
+  {
+   "name": "spectator",
+   "title": "",
+   "category": "tools",
+   "description": "Harness-neutral live session sharing, summaries, and branch queries. Disclosure \u2014 reads state.db read-only and exposes masked transcripts to invite-token guests on the dashboard; host-approved guest suggestions are injected via ctx.inject_message.",
+   "topic": "agent logs"
+  },
+  {
+   "name": "hermes-town",
+   "title": "",
+   "category": "tools",
+   "description": "Local pixel-art town where every Hermes session is a resident and every tool call walks to a building. Passive lifecycle bridge to a loopback-only server; prompts, arguments, and output never leave the process. Disclosure \u2014 version 0.3.0 bundles the Town Node server and a prebuilt browser app inside",
+   "topic": "agent logs"
+  },
+  {
+   "name": "kokpit",
+   "title": "Kokpit",
+   "category": "tools",
+   "description": "A personal cockpit for Hermes Agent. When a session produces something, Kokpit leaves a short card and receipt in plain Markdown that Hermes, Claude Code and Codex all read, so the next session picks up where the last one stopped. It also captures notes and todos from any Hermes chat, gives a mornin",
+   "topic": "agent logs"
+  },
+  {
+   "name": "hephaestus",
+   "title": "Hephaestus",
+   "category": "tools",
+   "description": "Ask for a plugin and your own agent writes it, checked by the official validator and doctor; you approve each check, because it runs the draft's code. It installs disabled; only you enable it. Disclosure \u2014 forge_check imports each draft's Python and calls its register() on this machine, outside the ",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "hermes-plugin-dev",
+   "title": "Hermes Plugin Dev",
+   "category": "tools",
+   "description": "Hermes Plugin Dev: build Hermes plugins with Hermes. A plugin-development skill plus two offline tools that scaffold a new plugin and lint it against the catalog rules before you submit. The hermes-plugin-dev:hermes-plugin-development skill covers manifest v2 and strict YAML, the ctx API, all 46 hoo",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "hermes-plugin-gen",
+   "title": "",
+   "category": "tools",
+   "description": "Generate, scaffold, and extend Hermes Agent plugins from simple descriptions.",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "skill-lineage",
+   "title": "Skill Lineage",
+   "category": "tools",
+   "description": "Records where each skill version's content came from, so a skill that rewrites itself can be audited afterwards. For every skill write \u2014 a foreground skill_manage call, a background-review edit, or a curator consolidation \u2014 it stores the skill content fingerprint before and after, the sources presen",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "test-drive",
+   "title": "Test Drive",
+   "category": "tools",
+   "description": "Don't guess which plugin helps. Test-drive it. When Hermes hits a capability wall (it says it can't, or a tool fails as unavailable) test-drive appends one line naming the best catalog match; /testdrive <need> and test_drive_find show the top 3 with trust cards (tier, pin, keys needed, declared tool",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "taster",
+   "title": "Taster",
+   "category": "tools",
+   "description": "Runs another Hermes plugin once in a locked box (fake home, canary wallet files, network denied and logged) and reports what it did versus its manifest. Disclosure \u2014 /taster runs the plugin folder you point it at as real code on this machine, once, inside macOS sandbox-exec (network denied, writes o",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "xray",
+   "title": "Plugin X-Ray",
+   "category": "tools",
+   "description": "Sets traps for plugins instead of watching them. hermes xray detonate runs a plugin in a throwaway child process with a fake home full of honeytokens, fuzzes its tools, fires its hooks and replays it at +30 and +90 days to catch time-bombs, then gives a RED/AMBER/GREEN verdict with file:line proof, ",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "plugin-safehouse",
+   "title": "",
+   "category": "tools",
+   "description": "Runs one local Hermes plugin inside a disposable, canary-seeded macOS profile; invokes its registered handlers and reports observed file, environment, network, process, persistence, and model-context behavior as FLAGGED, REVIEW, INCONCLUSIVE, or NO_FLAGS_OBSERVED. Disclosure \u2014 the model-callable `sa",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "soul-finder",
+   "title": "Soul Finder",
+   "category": "tools",
+   "description": "Build or fix your agent's SOUL.md \u2014 the personality file behind every reply. A few plain questions draft one from scratch; /soul audits a stale one and ships a diff. Disclosure \u2014 reads $HERMES_HOME/SOUL.md and writes it only through the agent's own file tools after you approve the draft (the bundled",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "plugin-scout",
+   "title": "Plugin Scout",
+   "category": "general",
+   "description": "A scout goes ahead, reports what's useful, and warns about trouble. Plugin Scout finds the plugins that fit how you use Hermes (each pick with its evidence), and checks: it tells you what a plugin does with your data before you install it, warns when a plugin's fine print does not fit your settings,",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "skill-layers",
+   "title": "",
+   "category": "tools",
+   "description": "Preserve source skills, create writable derivatives, and review three-way source updates. Disclosure \u2014 publishing (only from the Desktop page, the dashboard or the `hermes skill-layers` CLI; the three agent tools are read-only) writes a new `sl-*` skill folder into the active profile's skills direct",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "skilluminati",
+   "title": "Skilluminati",
+   "category": "tools",
+   "description": "Your skills, judged blind: finds out whether each skill your Hermes agent loads makes its answers better. /skilluminati <skill> takes the latest 12 times you used the skill, each with the chat as it stood at that moment, and your model answers each one twice, once with the skill and once without. Th",
+   "topic": "plugins and skills"
+  },
+  {
+   "name": "hermes-windows-apps",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"what is installed on this Windows machine\": the software inventory behind Apps & Features, swept straight from the four Uninstall registry keys (the machine's 64-bit and 32-bit views plus the user's), so a program is found even when the Settings page hides it - a per-user install that never ",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "hermes-windows-disks",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"are this machine's disks healthy, and which volume is filling up\" on Windows: one table of every physical disk (model, serial, SSD/HDD/SCM, bus - nvme, sata, usb -, size, the storage stack's health word, GPT or MBR, boot/system flags, partition count) and every volume (drive letter, label, f",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "hermes-windows-eventlog",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"why did this process die\" on Windows: three read-only tools over the Windows Event Log. win_crash_events reads Application Error / Application Hang / Windows Error Reporting / .NET Runtime records for a time window, decodes the exception code (0xC0000005 -> ACCESS_VIOLATION and the other cod",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "hermes-windows-firewall",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"what does the Windows firewall let through, and for whom\" on Windows: every rule from the registry store the firewall service itself keeps, each row in plain words -- allow or block, inbound or outbound, TCP/UDP/ICMP or a protocol number, local and remote ports, the program or service the ru",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "hermes-windows-network",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"is this machine's network healthy, and which adapter is the problem\" on Windows: lists every visible network adapter with its state (up, disconnected, disabled, not present), its link speed as a number, its MAC, whether it is virtual (Hyper-V, VPN, virtual switch) or physical, and its driver",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "hermes-windows-services",
+   "title": "",
+   "category": "tools",
+   "description": "Answer \"what runs as a service on this machine, why did one fail, and what does it depend on\" on Windows: win_service_table lists every service with its state (Running, Stopped, Paused), its start mode (Auto, Manual, Disabled, with the delayed flag folded in as \"Auto, delayed\"), the pid it runs unde",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "nurse",
+   "title": "Hermes Nurse",
+   "category": "tools",
+   "description": "Supervisor-aware service management for a Hermes host. Reads pm2 and systemd into one table, triages a failing service's own logs into a ranked diagnosis (OOM via SIGKILL/exit 137, port already in use, missing env var, crash loop measured as restarts per hour rather than uptime, bad exit code, depen",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "netplane",
+   "title": "",
+   "category": "tools",
+   "description": "Install, configure and operate a self-hosted Headscale control plane from Hermes. netplane_setup previews a configuration and, after approval, installs the pinned official Headscale v0.29.6 DEB on a fresh Debian 12+ or Ubuntu 22.04+ systemd host (amd64/arm64). Installation runs on the Hermes host, r",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "netscope",
+   "title": "netScope: Offline Network Capture Analyzer",
+   "category": "tools",
+   "description": "Offline pcap/pcapng network capture analyzer with interactive HTML reports, protocol graphs, traffic replay at 1\u00d7/4\u00d7/16\u00d7, and deterministic anomaly heuristics (traffic bursts, scan patterns, DNS anomalies, cleartext ports). Stdlib-only, no network requests, no telemetry.",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "nextdns",
+   "title": "",
+   "category": "tools",
+   "description": "Read-only NextDNS tools - DNS query logs, blocked queries with the blocklist that matched, and aggregate analytics by domain, device, blocklist or protocol. For triaging DNS problems and answering \"was this blocked, and by what\". Uses the official NextDNS API; makes no configuration changes.",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "wireguard",
+   "title": "WireGuard",
+   "category": "tools",
+   "description": "Read-only status and peer list for a WireGuard server running on the same Windows machine as Hermes. Two tools: vpn_status (service state, tunnel address and port, server public key, per-peer handshake and transfer) and vpn_peers (the peer list only). The plugin runs only wg.exe show, sc.exe query, ",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "backup-sentinel",
+   "title": "",
+   "category": "tools",
+   "description": "Offline local tar.gz backup integrity, freshness, required-file and archived SQLite auditing; never restores or repairs. Disclosure \u2014 reads explicitly selected archive bytes, materializes only permitted SQLite members in private scratch, and invokes a fixed local Python auditor through Hermes's term",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "s3",
+   "title": "",
+   "category": "tools",
+   "description": "Generic S3-compatible backup and restore operations for Hermes",
+   "topic": "servers and networks"
+  },
+  {
+   "name": "apple-keychain",
+   "title": "Apple Keychain",
+   "category": "general",
+   "description": "Load Hermes secrets from macOS Keychain, with interactive setup, safe rotation and recovery. Reads explicitly configured Keychain items; operator commands can write items and manage recovery copies. Does not read or edit .env files. Compiles the included C helper locally with Apple developer tools a",
+   "topic": "security"
+  },
+  {
+   "name": "hermesvault",
+   "title": "",
+   "category": "tools",
+   "description": "Keep secrets out of plaintext .env files: a local encrypted vault (FloorVault, AES-256-SIV) whose items Hermes loads as environment variables at startup (mapped source \"hermesvault\", hv: references), with a hermes hvault CLI to manage items. The vault key lives in your OS key store (Keychain, Secret",
+   "topic": "security"
+  },
+  {
+   "name": "infisical",
+   "title": "",
+   "category": "general",
+   "description": "Secret source plugin that resolves environment variables from an Infisical secret store (cloud or self-hosted) at Hermes startup. Registers a mapped source (\"infisical\", inf:// references) and a bulk source (\"infisical_bulk\").",
+   "topic": "security"
+  },
+  {
+   "name": "openbao",
+   "title": "",
+   "category": "tools",
+   "description": "Resolve mapped bao:// references from OpenBao or HashiCorp Vault KV v1/v2 into Hermes environment variables at startup. Disclosure \u2014 makes outbound HTTP(S) calls to the configured Vault/OpenBao address and sends HERMES_OPENBAO_TOKEN as X-Vault-Token; never reads .env/auth stores directly, never cach",
+   "topic": "security"
+  },
+  {
+   "name": "vaultwarden",
+   "title": "",
+   "category": "general",
+   "description": "Vaultwarden / Bitwarden Password Manager (bw CLI) secret source",
+   "topic": "security"
+  },
+  {
+   "name": "secret-remediation",
+   "title": "secret-remediation",
+   "category": "tools",
+   "description": "Fingerprint leaked credentials in the Hermes workspace, logs, and session history. Redacts them, blocks the turn, and gives text-only rotation advice. Disclosure \u2014 Rewrites credential matches into fingerprint placeholders in tool results, terminal output and replies, blocks turns or tool calls that ",
+   "topic": "security"
+  },
+  {
+   "name": "seedguard",
+   "title": "Seedguard",
+   "category": "general",
+   "description": "Secret firewall: private keys, seed phrases, API keys and 2FA codes become placeholders before they reach the model; armed tools can still use them. Disclosure \u2014 rewrites provider requests, tool arguments, tool results, final replies and inbound chat messages to replace detected secrets with placeho",
+   "topic": "security"
+  },
+  {
+   "name": "vaultknox",
+   "title": "",
+   "category": "tools",
+   "description": "Secret-leak protection for Hermes chats. Scans inbound messages and outbound replies for API keys, tokens, and passwords with a 28-pattern detector registry, redacts them before they reach session storage or the user, and injects safe secret-handling rules so the agent never asks for secrets in chat",
+   "topic": "security"
+  },
+  {
+   "name": "hermes-secret-gate",
+   "title": "",
+   "category": "tools",
+   "description": "Stop agent-drafted secrets from leaving the machine \u2014 deterministic scan, fail-closed gate, receipts.",
+   "topic": "security"
+  },
+  {
+   "name": "hermes-pii",
+   "title": "",
+   "category": "tools",
+   "description": "Uses local Presidio and spaCy to redact supported PII in outgoing user text. Disclosure \u2014 filters Chat Completions user messages and Responses user input locally; system prompts, tool outputs and tool-call arguments are preserved. Fail-open: detector errors, including a missing model, send original ",
+   "topic": "security"
+  },
+  {
+   "name": "privacy-gateway",
+   "title": "",
+   "category": "general",
+   "description": "Local Presidio-based PII pseudonymization for Hermes model requests and tool results with an encrypted profile-scoped alias vault. Disclosure \u2014 PII detection runs locally with Presidio and the spaCy en_core_web_lg model, which you install manually; alias mappings are stored encrypted in the Hermes p",
+   "topic": "security"
+  },
+  {
+   "name": "redactgate",
+   "title": "",
+   "category": "tools",
+   "description": "Reversible PII pseudonymization at the model boundary. Names, e-mails, phones, payment cards, IBANs and national IDs (CA, US, EU, UA) become [[TYPE_xxxxxx]] placeholders in every main-loop model request, across all roles, tool-call arguments, tool results and the system prompt (Chat Completions, Ant",
+   "topic": "security"
+  },
+  {
+   "name": "airlock-sandbox",
+   "title": "Airlock Sandbox",
+   "category": "tools",
+   "description": "Terminal backend that routes Hermes command execution through an operator-chosen Airlock HTTPS API and disposable sandbox, then surfaces receipts (RFC 8785 JCS, SHA-256, Ed25519) as BLOCKED / ALLOWED / VERIFIED (`hermes config set terminal.backend airlock_sandbox`). Requires an explicit HTTPS origin",
+   "topic": "security"
+  },
+  {
+   "name": "briq",
+   "title": "",
+   "category": "tools",
+   "description": "Run Hermes' terminal, file and execute_code tools in a briq sandbox, a microVM with its own disk, instead of on this machine. Select it with terminal.backend: briq. Disclosure \u2014 every command and file operation is sent over HTTPS to the briq API (https://api.briq.cloud, or the URL in BRIQ_API_URL) a",
+   "topic": "security"
+  },
+  {
+   "name": "bubblewrap",
+   "title": "",
+   "category": "tools",
+   "description": "Bubblewrap terminal backend for Linux: every terminal and execute_code command runs in its own bwrap sandbox on this machine at the host's own paths, with a read-only root, a writable working directory (per profile: restricted, workspace or network), the dot entries of the home directory (credential",
+   "topic": "security"
+  },
+  {
+   "name": "cua-spaces",
+   "title": "Cua Spaces",
+   "category": "tools",
+   "description": "Cua's own plugin: runs Hermes's terminal, file and code tools inside a Cua Space, an isolated Linux, macOS or Windows machine you can watch live, as a terminal backend (`hermes config set terminal.backend cua`). On Hermes 0.22.3 and later, Bot Desktop, computer_use and the browser follow the termina",
+   "topic": "security"
+  },
+  {
+   "name": "gmi-sandbox",
+   "title": "GMI Cloud Sandbox",
+   "category": "tools",
+   "description": "GMI Cloud Sandbox terminal backend: Hermes's terminal, file and code tools run inside an ephemeral cloud sandbox created from a ready template you provide (`hermes config set terminal.backend gmi_sandbox`). Commands are polled to completion and cancelled on interrupt; truncated output is reported as",
+   "topic": "security"
+  },
+  {
+   "name": "glassbox",
+   "title": "Glassbox",
+   "category": "tools",
+   "description": "A contained, auditable terminal backend for macOS. Select it with `hermes config set terminal.backend glassbox` and every terminal, execute_code, read_file, write_file, patch and search_files call runs under a generated Seatbelt profile: the system stays readable, the workspace is writable, the rest",
+   "topic": "security"
+  },
+  {
+   "name": "upstash-box",
+   "title": "Upstash Box",
+   "category": "tools",
+   "description": "Terminal backend that runs Hermes terminal, execute_code and file tools in an Upstash Box cloud container, paused and resumed by name per task or created per session and deleted when it ends. Disclosure \u2014 requires an Upstash Box API key (UPSTASH_BOX_API_KEY); every command and the files the file too",
+   "topic": "security"
+  },
+  {
+   "name": "command-reviewer",
+   "title": "",
+   "category": "tools",
+   "description": "Reviews every terminal/execute_code call before execution: deterministic hard rules block credential reads and destructive patterns, script contents are ingested and judged (not just filenames), an LLM reviewer with an injection-resistant prompt issues SAFE/SUSPICIOUS/MALICIOUS verdicts, and operato",
+   "topic": "security"
+  },
+  {
+   "name": "contagion",
+   "title": "",
+   "category": null,
+   "description": "Taint-aware execution. Once a session reads untrusted content, its commands lose network, secrets and out-of-project writes at the OS layer. Disclosure \u2014 Contagion replaces the local terminal backend (`terminal.backend: contagion`): until a session is marked tainted its commands and file tools run o",
+   "topic": "security"
+  },
+  {
+   "name": "cooldown",
+   "title": "",
+   "category": "tools",
+   "description": "Checks every package Hermes is about to install with pip, uv, poetry, pipx, npm, pnpm, yarn, bun or npx. Blocks versions OSV lists as malicious, and holds the install in Hermes's own approval prompt when a release is younger than 3 days (the rule Hermes uses for its own dependencies), the package is",
+   "topic": "security"
+  },
+  {
+   "name": "hermes-guardian",
+   "title": "Hermes Guardian",
+   "category": "tools",
+   "description": "Deterministic allow/approve/block policies for Hermes tool calls, with read-only Policy Lab regression simulation and operator-reviewed policy proposals. Exact tool-name rules, explicit protected local paths, a deliberately limited shell grammar, and payload-free persistent decision audits. Unknown ",
+   "topic": "security"
+  },
+  {
+   "name": "hermes-tenuo",
+   "title": "Tenuo",
+   "category": "tools",
+   "description": "Signed, expiring tool permissions for Hermes. Constrain tool names and arguments for sessions, cron jobs and delegated work, with local audit logs. Disclosure \u2014 ordinary calls pass through until a warrant is configured. Set require_warrant: true to block calls without one. A configured but unloadabl",
+   "topic": "security"
+  },
+  {
+   "name": "tracekit",
+   "title": "",
+   "category": "tools",
+   "description": "Tracekit's signer decides every tool call before it runs (deny blocks, ask waits for a person) and signs each call and its outcome into a run you can verify offline. Disclosure \u2014 every tool call's name and arguments, plus its result (in full for tools Tracekit's policy marks untrusted, otherwise a S",
+   "topic": "security"
+  },
+  {
+   "name": "tirith",
+   "title": "tirith",
+   "category": "tools",
+   "description": "Check every terminal command with your installed tirith before it runs: lookalike and homograph URLs, pipe-to-shell, obfuscated execution, credential and .env exfiltration, malicious packages and terminal injection. tirith blocks and required policy approvals go to Hermes's approval prompt, critical",
+   "topic": "security"
+  },
+  {
+   "name": "scar",
+   "title": "",
+   "category": "tools",
+   "description": "scar keeps the tool-call shape you denied on a Hermes approval card and stops that shape before it runs. scar does not call a model. hermes chat --cli stores only the choice id deny. The shape is the tool, the argument keys that held an rm command, and the danger tokens, including an rm inside a she",
+   "topic": "security"
+  },
+  {
+   "name": "mcp-pin",
+   "title": "MCP Pin",
+   "category": "tools",
+   "description": "Hold MCP tools whose definition changed since you approved them. Fingerprints every MCP tool's description and parameter schema as Hermes registered it; if a server later changes a tool (a rug pull, instructions hidden in a description, a new parameter) or adds a tool to a pinned server, the new def",
+   "topic": "security"
+  },
+  {
+   "name": "scamgate",
+   "title": "",
+   "category": "tools",
+   "description": "Offline scam gate. Blocks known-bad links and payments before a tool runs, and asks a human when it cannot see the destination. Disclosure \u2014 blocks agent tool calls that would edit Hermes config/profiles/plugins/hooks or Claude Code settings/hooks/plugins, turn approvals off, or disable a Claude Cod",
+   "topic": "security"
+  },
+  {
+   "name": "stepup",
+   "title": "Step-Up",
+   "category": "tools",
+   "description": "Authenticator-app 2FA for your agent: on messaging platforms the protected tools (terminal and execute_code by default) stay locked until the sender sends a one-time TOTP code from an authenticator app, so an unlocked phone is not a remote shell. One valid code unlocks that sender for 10 minutes, ea",
+   "topic": "security"
+  },
+  {
+   "name": "passkey-gate",
+   "title": "",
+   "category": "tools",
+   "description": "Approve your agents' risky actions with your phone's passkey, even when you're not at the agent's keyboard. An agent asks for approval of an exact action (and optionally the exact command); you get a link in any chat, read it on your phone and sign with Face ID, a fingerprint or your screen lock; th",
+   "topic": "security"
+  },
+  {
+   "name": "shodan",
+   "title": "",
+   "category": "tools",
+   "description": "Shodan tools with complete capability declarations.",
+   "topic": "security"
+  },
+  {
+   "name": "darkmoon",
+   "title": "",
+   "category": "tools",
+   "description": "Triage the findings file of a Darkmoon autonomous pentest scan (JSON or SARIF): filter by severity and proof status, get a severity-sorted summary and a pass/fail gate for a release. Read-only and offline: no network, no subprocess, no credentials, standard library only. Darkmoon is open source (GPL",
+   "topic": "security"
+  },
+  {
+   "name": "agentwalletapi",
+   "title": "",
+   "category": "tools",
+   "description": "OpenClawCash managed EVM and Solana wallets for AI agents \u2014 thin bridge to the OpenClawCash agent API. Disclosure \u2014 payments plugin for the OpenClawCash custodial wallet service (openclawcash.com); the model can create wallets and send EVM/Solana transfers from wallets reachable by OPENCLAWCASH_AGEN",
+   "topic": "finance"
+  },
+  {
+   "name": "basekit",
+   "title": "",
+   "category": "tools",
+   "description": "Read-only live Base (chain 8453) intelligence \u2014 gas and real USD cost estimates, wallet portfolios, decoded transaction receipts, token facts with proxy detection, and windowed transfer/approval reads \u2014 plus a desktop pane, status-bar chip and a standard-library-only core with no PyPI dependencies. ",
+   "topic": "finance"
+  },
+  {
+   "name": "blazephoenix",
+   "title": "BlazePhoenix",
+   "category": "tools",
+   "description": "Swap quotes from BlazePhoenix, the on-chain DEX aggregator, measured on the user's own RPC and verified locally: net output, Phoenix Check verdict and unsigned Router calldata checked field by field before anything is signed. Base, Ethereum, Optimism, Arbitrum, Robinhood Chain. Disclosure: HTTPS cal",
+   "topic": "finance"
+  },
+  {
+   "name": "evm-token-inspector",
+   "title": "",
+   "category": "tools",
+   "description": "Inspect any EVM token contract before interacting with it: name, symbol, decimals, total supply, owner/renounced status, EIP-1967 proxy detection, and the DEX V2 pair plus liquidity reserves \u2014 one tool, evm_token_check, on BSC, Ethereum, Base and Arbitrum. Read-only; public JSON-RPC only, no API key",
+   "topic": "finance"
+  },
+  {
+   "name": "hyperliquid-desk",
+   "title": "Hyperliquid Desk",
+   "category": "tools",
+   "description": "Live Hyperliquid dashboard tab, Flow Deck alerts, wallets and market tools with a commentary skill on Hyperliquid's public data, plus node panels from the plugin author's hosted relay (on by default, can be turned off) or your own engine feed. Read-only; no orders, no trading keys. Independent; not ",
+   "topic": "finance"
+  },
+  {
+   "name": "stablelens",
+   "title": "StableLens",
+   "category": "tools",
+   "description": "Read-only tools for Arc Network, the stablecoin-native L1 where USDC is the gas token: native USDC and Circle token balances (USDC, EURC, USYC, cirBTC, WETH, plus any ERC-20) read at one block, transaction status with the USDC fee and decoded ERC-20 transfers, the current cost of a transfer, and tok",
+   "topic": "finance"
+  },
+  {
+   "name": "shinjuku",
+   "title": "Shinjuku private wallet",
+   "category": "tools",
+   "description": "A private USDC wallet for Hermes that the user holds. It pays paid web services and APIs (x402) privately: the seller and the blockchain do not see which wallet paid. From plain requests Hermes checks a price, finds paid APIs, pays, and shows a wallet card (/shinjuku:wallet), receipts, add funds and",
+   "topic": "finance"
+  },
+  {
+   "name": "zaprite",
+   "title": "Zaprite",
+   "category": "tools",
+   "description": "Get paid from a Hermes chat. One checkoutUrl for card, bank, Lightning, on-chain bitcoin, and stablecoins, then re-fetch until Paid. Disclosure \u2014 every call goes to api.zaprite.com (or the base_url you set in plugin config) with the key you put in the Hermes secret store (ZAPRITE_API_KEY), read on e",
+   "topic": "finance"
+  },
+  {
+   "name": "polydesk",
+   "title": "",
+   "category": "tools",
+   "description": "Agent paper-trading desk for Polymarket: research a market, quote a trade against the live CLOB order book (fills sweep real book levels, so slippage is realistic), confirm with a single-use 5-minute ticket that is re-priced at execution, then track mark-to-market P&L with automatic settlement when ",
+   "topic": "finance"
+  },
+  {
+   "name": "prediction-market-scout",
+   "title": "",
+   "category": "tools",
+   "description": "Polymarket research for Hermes: search markets or paste a polymarket.com link for live odds, spread, liquidity and 7-day history; ranked 24h movers and attention signals (big moves, volume spikes, wide spreads, odd pricing, undecided markets about to close); a price-alert watchlist that fires once a",
+   "topic": "finance"
+  },
+  {
+   "name": "attest",
+   "title": "attest",
+   "category": "tools",
+   "description": "Paper trading ledger for agents. Orders, balances and P&L live in a local SQLite ledger the plugin owns, and the agent gets its figures from get_portfolio, get_pnl and get_quote instead of stating them. Orders are priced from live public exchange quotes with slippage and a fee, after a per-order siz",
+   "topic": "finance"
+  },
+  {
+   "name": "ghost-subscriptions",
+   "title": "Ghost Subscriptions",
+   "category": "tools",
+   "description": "Detects subscriptions and recurring charges in a bank statement export (CSV from 17 bank profiles or any CSV by column mapping, OFX 1.x/2.x), reports their yearly cost per currency, price increases, duplicate charges, overlapping services, stopped subscriptions and payment plans, and writes a cancel",
+   "topic": "finance"
+  },
+  {
+   "name": "payops",
+   "title": "",
+   "category": "tools",
+   "description": "Read-only Paystack transaction inspection and reconciliation for Hermes agents. Disclosure \u2014 read-only payments integration: sends the user's PAYSTACK_SECRET_KEY (read through Hermes's secret route) to api.paystack.co only, issuing GET requests for transactions and settlements; it cannot create char",
+   "topic": "finance"
+  },
+  {
+   "name": "llmslim",
+   "title": "LLMSlim",
+   "category": "general",
+   "description": "Context engine that compresses older tool output and turns locally with LLMSlim instead of asking a model for a summary: no LLM call, deterministic output, and the start of the prompt is sent unchanged, so prompt caching keeps working. Select it with context.engine: llmslim. Disclosure: installs llm",
+   "topic": "token costs"
+  },
+  {
+   "name": "tameru",
+   "title": "Tameru",
+   "category": "general",
+   "description": "Big tool outputs, kept small, nothing lost: old tool results shrink to the lines that matter and every distinct error, and the tameru_read_original tool brings back the exact original. You can also Restore or Keep a shortened output in full, pin lines of your own through every summary, and see it al",
+   "topic": "token costs"
+  },
+  {
+   "name": "toolaria",
+   "title": "",
+   "category": "tools",
+   "description": "Rescues oversized MCP and web tool results before they flood context.",
+   "topic": "token costs"
+  },
+  {
+   "name": "cacheguard",
+   "title": "Cacheguard",
+   "category": "tools",
+   "description": "Warns or blocks a large chat message sent after a pause, when the provider's prompt cache may have expired. Afterwards it shows how many tokens were reused or rebilled, and /cacheguard shows how often your cache was lost after pauses of each length. Modes (off, warn, block) are set per surface (term",
+   "topic": "token costs"
+  },
+  {
+   "name": "cost-forecast",
+   "title": "Cost Forecast",
+   "category": "tools",
+   "description": "Quotes a task's cost before it runs and stops for your OK when it would go over budget. Before a task starts it estimates the number of model calls and tokens (P50 and P90), prices them at your model's rates, and shows a quote when the task is large or could exceed your per-task cap. While the task ",
+   "topic": "token costs"
+  },
+  {
+   "name": "costguard",
+   "title": "CostGuard",
+   "category": "tools",
+   "description": "A brake pedal for model spend. Meters every API call per session and per day from the provider's own usage block; dollar figures are estimates computed only for models in its price table and are never invented for unknown models. When a provider reports no usage (common with streaming OpenAI-compati",
+   "topic": "token costs"
+  },
+  {
+   "name": "cost-sentinel",
+   "title": "",
+   "category": "tools",
+   "description": "Live cost ledger and daily budget guarddog for Hermes Agent, per profile or fleet-wide \u2014 every LLM call is priced with Hermes' own pricing engine into a per-profile SQLite ledger plus a shared fleet ledger (all profiles of the install roll into one daily number); /cost rules the budget (set, block, ",
+   "topic": "token costs"
+  },
+  {
+   "name": "turn-usage",
+   "title": "",
+   "category": "general",
+   "description": "Usage and cost footer appended to every reply \u2014 tokens, cache hit rate, cost and context occupancy, plus a per-tool time breakdown showing which tool actually consumed the wall clock. Waiting time (a blocking user prompt) is reported separately and excluded from the active-time denominator. Pure com",
+   "topic": "token costs"
+  },
+  {
+   "name": "usage-watch",
+   "title": "Usage Watch",
+   "category": "tools",
+   "description": "Shows how much of your Claude or Codex usage window is left as one line in the chat, every few turns, with reset times. No LLM calls.",
+   "topic": "token costs"
+  },
+  {
+   "name": "live-time",
+   "title": "",
+   "category": "general",
+   "description": "Hermes Agent plugin: injects the current date, time and timezone into every turn as ephemeral context, so long or cross-day sessions stop using a stale wall clock. Zero dependencies, prompt-cache safe.",
+   "topic": "token costs"
+  },
+  {
+   "name": "nowstamp",
+   "title": "",
+   "category": "general",
+   "description": "Give the agent a clock. Appends the current date and time, plus the real gap since the previous message, to every user turn. Optional spaced-out timestamps on tool results for long runs.",
+   "topic": "token costs"
+  },
+  {
+   "name": "long-conversations",
+   "title": "",
+   "category": "tools",
+   "description": "Persistent long-term conversations across session boundaries via structured handoff briefs and token monitoring. Disclosure \u2014 stores handoff briefs (topic, work in progress, decisions, open questions, next step; in aggressive mode auto-built from the first 200 characters of recent user messages) as ",
+   "topic": "token costs"
+  },
+  {
+   "name": "sessionguard",
+   "title": "SessionGuard",
+   "category": "tools",
+   "description": "Work survives the session. Keeps a local work-state checkpoint for every session, built from tool evidence: current task, files touched, recent tool calls and outcomes, failure count, and the agent's own progress notes saved through the session_checkpoint tool. A checkpoint closes only when the agen",
+   "topic": "token costs"
+  },
+  {
+   "name": "ctx_handover",
+   "title": "ctx handover",
+   "category": "tools",
+   "description": "Close the lid, the session goes on: ctx_handover moves a running Hermes session, with the conversation and the project folder it works in, from one machine you own to another and back. `/handover to server` sends it after work, `/handover take` brings it to the laptop, and `--continue \"task\"` lets t",
+   "topic": "token costs"
+  },
+  {
+   "name": "b64-ref",
+   "title": "",
+   "category": "tools",
+   "description": "@b64: context references that decode encoded text for the model: @b64:<value> takes base64 (standard or URL-safe, padded or not), hex (0x48656c6c6f, 48:65:6c, \\x48\\x65), percent-encoding or a data: URI, told apart by the value's shape or picked with base64:, base64url:, hex: or url:, and attaches wh",
+   "topic": "token costs"
+  },
+  {
+   "name": "jwt-ref",
+   "title": "",
+   "category": "tools",
+   "description": "@jwt: context references that decode a JSON Web Token for the model: @jwt:<token> (or a quoted \"Bearer <token>\") attaches the header with the algorithm in words, every claim as JSON, the exp, nbf, iat and auth_time claims in UTC with how long ago or ahead they are, whether the token has expired and ",
+   "topic": "token costs"
+  },
+  {
+   "name": "birdie",
+   "title": "birdie",
+   "category": "tools",
+   "description": "Lets each Hermes conversation message the other AI agents on this machine, such as Claude Code, Codex and Grok, through birdie, a local open-source message bus, and, if you allow it, be woken by their messages. Each conversation gets its own address, so an answer comes back to the conversation that ",
+   "topic": "ai agents"
+  },
+  {
+   "name": "clack",
+   "title": "",
+   "category": "tools",
+   "description": "Encrypted agent-to-agent messaging with durable receipts and no plaintext fallback. Disclosure \u2014 sends your agent's signed identity, relay service token and end-to-end-encrypted messages the model writes to the configured Clack relay (default relay.tryclack.com); messages received from peers are unt",
+   "topic": "ai agents"
+  },
+  {
+   "name": "pantheon",
+   "title": "",
+   "category": "tools",
+   "description": "Let Hermes exchange messages and agree on outcomes with other agents in a shared Pantheon chat. Disclosure \u2014 Sends chat messages, files you upload (from the session's working directory, up to 1 MB each) and static site bundles (up to 20 MB) to pantheon.talk, where other chat members can read them; s",
+   "topic": "ai agents"
+  },
+  {
+   "name": "hermes-iroh-interconnect",
+   "title": "",
+   "category": "tools",
+   "description": "Authenticated Hermes agent-to-agent tasks and optional file transfer over Iroh QUIC. Disclosure \u2014 tasks from a paired peer run in your live gateway agent with its full toolset; pairing is confirmed via the tool's confirm=true argument, not a UI prompt. Uses n0's public relays by default (HERMES_IROH",
+   "topic": "ai agents"
+  },
+  {
+   "name": "simular-sai",
+   "title": "Sai by Simular",
+   "category": "tools",
+   "description": "Give Hermes a computer: hand tasks that need a screen (web apps behind a login, admin consoles, desktop software, forms with no import) to Sai, Simular's computer-use agent, which does them on a cloud computer Simular hosts and reports back in text. Agent Plugins v1 package (plugin.json + mcp.json +",
+   "topic": "ai agents"
+  },
+  {
+   "name": "tether",
+   "title": "Hermes Tether",
+   "category": "tools",
+   "description": "One Hermes agent, many machines: lends a remote Hermes agent the terminal, files, screen and apps of your paired desktop machines (macOS and Windows). Say 'tether <machine>' and the agent's terminal, file and computer-use tools act on that machine under its own Hermes rules and approvals; send 'unte",
+   "topic": "ai agents"
+  },
+  {
+   "name": "thoth",
+   "title": "Thoth",
+   "category": "tools",
+   "description": "Agents working as one team, each with its own harness: Claude Code, Codex and Hermes today. Ask Hermes for a website, an app, artwork or a doc: it plans the work on a shared board and hands each task to the real Claude Code or Codex CLI, on your own logins and plans, so every improvement their maker",
+   "topic": "ai agents"
+  },
+  {
+   "name": "index-network",
+   "title": "Index",
+   "category": "tools",
+   "description": "Give your agent someone to talk to. Index is the social layer between personal agents. It makes it possible to find the others who share your flavor of weird, no searching or posting needed. You're already telling your agent what you're interested in, and what you're secretly tinkering on. We give p",
+   "topic": "ai agents"
+  },
+  {
+   "name": "iolite",
+   "title": "Iolite",
+   "category": "tools",
+   "description": "Pick an LLM that is smart enough, then cheapest, in one tool call. Set an intelligence floor or name an anchor model, and Iolite returns the few models on the cost x intelligence front, ranked toward cheaper, smarter or balanced. It answers from a catalog of 621 models bundled in the plugin, so a fr",
+   "topic": "models"
+  },
+  {
+   "name": "fusion",
+   "title": "",
+   "category": null,
+   "description": "Multi-model fusion router for Hermes: detects the model fleet your harnesses (Hermes, Codex, Claude, Grok) actually have installed and builds a Frontier -> Middle Manager -> Frontier routing structure with pinned models and provenance from execution records. `hermes fusion teams|validate|plan|run|in",
+   "topic": "models"
+  },
+  {
+   "name": "local-first-routing",
+   "title": "",
+   "category": "tools",
+   "description": "Pinned local delegation with explicit manual escalation and no fallback.",
+   "topic": "models"
+  },
+  {
+   "name": "provider-endpoint-healer",
+   "title": "Provider Endpoint Healer",
+   "category": "tools",
+   "description": "Status and health listing for configured model endpoints. Probes them on session start and via /peh, and recommends the best candidate by health, latency, cost and capability. Reports only; it does not switch Hermes providers. Disclosure \u2014 at session start and on `/peh` it sends an unauthenticated `",
+   "topic": "models"
+  },
+  {
+   "name": "stream-speed",
+   "title": "",
+   "category": "tools",
+   "description": "How fast each model starts answering and how fast it writes: /speed shows the median and p90 time to first text and the median characters per second per model, provider or day, or lists the newest streams (ten, or up to 100 with /speed recent 50), for the last 24 hours, any number of hours or days, ",
+   "topic": "models"
+  },
+  {
+   "name": "boardloop",
+   "title": "BoardLoop",
+   "category": "tools",
+   "description": "Hermes writes ESP32 and Arduino code, compiles it with arduino-cli, tests it in the Wokwi simulator (sets sensor values, presses buttons, checks pins, serial output and OLED screenshots), fixes it within bounded attempts, and flashes real boards with approval. Disclosure \u2014 runs the user-installed ar",
+   "topic": "coding"
+  },
+  {
+   "name": "esp32-debug",
+   "title": "ESP32 Debug",
+   "category": "tools",
+   "description": "Read-only ESP32 debugging: find ESP32 boards on serial ports, read chip info, capture a bounded serial log, and decode panic backtraces to function and file:line against a hash-checked ELF. Disclosure \u2014 runs esptool (read-only flash-id/chip-id; resets the board, only when the call sets confirm_reset",
+   "topic": "coding"
+  },
+  {
+   "name": "borrowed-hands",
+   "title": "Borrowed Hands",
+   "category": "tools",
+   "description": "Lend your Mac's Xcode to a cloud Hermes. Hermes finds your paired Mac, compiles the Xcode project you granted (macOS arm64 or generic iOS Simulator, compile only) at an exact commit on a bh/* branch, and gets structured compiler diagnostics back: ask \"Build my demo project on my Mac\", or have Hermes",
+   "topic": "coding"
+  },
+  {
+   "name": "hermes-colab",
+   "title": "",
+   "category": "tools",
+   "description": "Run Python scripts and Jupyter notebooks on Google Colab GPUs (T4 free tier, L4, A100, H100, TPU) from chat: Hermes assigns the runtime, uploads the code, keeps it alive, streams progress and GPU use, syncs outputs and checkpoints home while the job runs, resumes on a fresh runtime from the last che",
+   "topic": "coding"
+  },
+  {
+   "name": "k6pane",
+   "title": "k6pane",
+   "category": "tools",
+   "description": "Local load testing with Grafana k6 from chat. Three tools: k6pane_doctor (checks the k6 install and limits), k6pane_run (writes and runs a k6 test from a URL or a multi-step request flow with smoke, load, stress, spike, soak, constant or fixed-arrival-rate profiles, or runs your own k6 script) and k",
+   "topic": "coding"
+  },
+  {
+   "name": "terraform-drift",
+   "title": "",
+   "category": "tools",
+   "description": "Compare pinned Terraform provider and module versions with the public registry. Disclosure \u2014 tools are on for every Hermes surface, including the gateway. Stop a surface with hermes tools disable --platform <name> terraform-drift, or the plugin with hermes plugins disable terraform-drift. Nothing is",
+   "topic": "coding"
+  },
+  {
+   "name": "apple-doc-plugin",
+   "title": "Apple Developer Documentation Studio",
+   "category": "tools",
+   "description": "Offline-first Apple Developer Documentation suite for Hermes: 95,899 symbols across 30 Apple frameworks with sub-5ms SQLite FTS5 search, React/Web/Android-to-SwiftUI idiom RRF, automatic Swift compiler diagnostic grounding hook, @apple: context references, /apple-docs demo command, inline ::apple-do",
+   "topic": "coding"
+  },
+  {
+   "name": "momentic",
+   "title": "",
+   "category": "tools",
+   "description": "Write, run and repair Momentic end-to-end tests for web (Chrome) and iOS/Android (simulators and emulators), and run Mo bug bashes that file each bug with a Momentic regression test. Portable Agent Plugins v1 package (plugin.json + skills/), no plugin code. The skills drive the Momentic CLI and its ",
+   "topic": "coding"
+  },
+  {
+   "name": "coder",
+   "title": "",
+   "category": "tools",
+   "description": "Run Hermes terminal commands in an existing remote Coder workspace. Disclosure \u2014 runs terminal commands inside your Coder workspace at CODER_URL using CODER_API_KEY; starts a stopped workspace automatically; forwards only the env vars you list in TERMINAL_CODER_FORWARD_ENV.",
+   "topic": "coding"
+  },
+  {
+   "name": "runbox",
+   "title": "runbox",
+   "category": "tools",
+   "description": "Build, run and test Python in an offline container per chat, with results as a plain file:line issue list. The agent syncs files or folders in as copies, then runs run (a shell command), check (ruff error rules) and test (pytest); fixes stay in the box until the user asks for export, which writes ch",
+   "topic": "coding"
+  },
+  {
+   "name": "specsentry",
+   "title": "",
+   "category": "tools",
+   "description": "Evidence-backed API contract drift analysis using OpenAPI and HAR traffic, with deterministic verdicts, coverage intelligence, and reproducible regression tests.",
+   "topic": "coding"
+  },
+  {
+   "name": "govee",
+   "title": "",
+   "category": "tools",
+   "description": "Discover and control Govee lights (power, brightness, color, white temperature, scenes) through Govee's developer API. Every command is checked against the model's advertised capabilities and ranges, then confirmed by a state read-back. Disclosure \u2014 sends device IDs and control commands to openapi.a",
+   "topic": "smart home"
+  },
+  {
+   "name": "switchbot-control",
+   "title": "",
+   "category": "tools",
+   "description": "SwitchBot OpenAPI v1.1, personal use. The watch does not report Plug Mini on or off. A command can still turn a Plug Mini on or off. The published card sentence (\"No Plug Mini on/off.\") does not describe a command on this pin. Locks off unless enabled. When safety_devices is on, each lock or door co",
+   "topic": "smart home"
+  },
+  {
+   "name": "klipper-print-watch",
+   "title": "",
+   "category": "tools",
+   "description": "Each watch run costs 0 tokens, and the unmanned run holds no tools. Built on the Moonraker HTTP API. Cron reports klippy_shutdown, complete, error, paused (after printing), cancelled, stalled. Disclosure \u2014 Talks to the one Moonraker URL you set. Over plain http on a LAN, MOONRAKER_API_KEY is sent un",
+   "topic": "smart home"
+  },
+  {
+   "name": "print-job-watch",
+   "title": "",
+   "category": "tools",
+   "description": "Each watch run costs 0 tokens, and the unmanned run holds no tools. Reads one OctoPrint printer. A cron watch reports printer_disconnected (not a pause); error; complete after Printing, Printing from SD, Pausing, Paused, Resuming, or Finishing; paused after Printing, Printing from SD, Pausing, or Re",
+   "topic": "smart home"
+  },
+  {
+   "name": "so101-arm",
+   "title": "SO-101 Arm",
+   "category": "tools",
+   "description": "Give Hermes a robot arm, safely: an SO-101 (a MuJoCo sim on your laptop, or a real arm through LeRobot) driven by named skills, never joint angles. A top-down camera grid corrects its aim, a missed pick is rehearsed on simulated copies before the retry, a plain-code watchdog parks the arm on faults,",
+   "topic": "smart home"
+  },
+  {
+   "name": "hermes-microduck",
+   "title": "Microduck Robot (MuJoCo)",
+   "category": "tools",
+   "description": "Drive Microduck, the open-source bipedal duck robot from Pollen Robotics / Hugging Face, in a MuJoCo simulation running its real trained ONNX RL policies: look through the duck's head camera, walk, turn, sit, stand, move the head, and line up and kick a ball at a goal (10 tools), with every motion g",
+   "topic": "smart home"
+  },
+  {
+   "name": "phone-harness",
+   "title": "Phone Harness",
+   "category": "tools",
+   "description": "Drive a real phone from Hermes with one phone_exec tool: an iPhone via iPhone Mirroring on a Mac, an Android over adb, or a cloud phone from Phone Harness Cloud. Disclosure \u2014 runs model-written Python on this computer with your user's permissions through the phone-harness package (installed from PyP",
+   "topic": "smart home"
+  },
+  {
+   "name": "phone-senses",
+   "title": "Phone Senses",
+   "category": "tools",
+   "description": "Give Hermes your own Android phone's senses through Termux:API: notification and SMS digests, sending SMS from your SIM, a bank and UPI money tracker with bill, subscription and delivery tracking, scam SMS warnings, a scam-in-progress tripwire (unsaved caller + screen-sharing app + OTP or debit, spo",
+   "topic": "smart home"
+  },
+  {
+   "name": "hermes-android",
+   "title": "",
+   "category": "tools",
+   "description": "Remote Android device control for Hermes Agent: 58 android_* tools (read screen, tap/type/swipe, open apps, camera, screenshots & screen recording, files, notifications, microphone streaming, media, clipboard, SMS/calls, Health Connect) plus a companion Android bridge app (Kotlin/Compose). The phone",
+   "topic": "smart home"
+  },
+  {
+   "name": "hotwire",
+   "title": "Hotwire",
+   "category": "tools",
+   "description": "Analog circuit design bench: Hermes writes a SPICE netlist from plain English, proves it against measurable specs (gain, corner frequencies, distortion, bias, current draw, part stress) with Hotwire's own circuit simulator, plays your guitar riff or WAV through the simulated circuit so you can hear ",
+   "topic": "smart home"
+  },
+  {
+   "name": "wrenchboard",
+   "title": "WrenchBoard",
+   "category": "tools",
+   "description": "Turn Hermes into a circuit board repair bench: a live boardview beside the chat, opened from 14 boardview formats, test plans with readings pinned on the pads, part cards drawn from the real copper, and your schematic and datasheets read on your computer. Disclosure \u2014 needs a WrenchBoard account (Re",
+   "topic": "smart home"
+  },
+  {
+   "name": "internship-scout",
+   "title": "",
+   "category": "tools",
+   "description": "Find internships on public Greenhouse, Lever and Ashby job boards, pre-screen each application form for blockers (cover letter, essays, how-did-you-hear, transcript, sponsorship, graduation window, pay), and track applications in a local tracker with requisition-level duplicate detection. Disclosure",
+   "topic": "career"
+  },
+  {
+   "name": "job-hunt-tracker",
+   "title": "",
+   "category": "tools",
+   "description": "Log job applications, check for duplicates before applying, and track follow-ups. A job-hunt tracker for Hermes.",
+   "topic": "career"
+  },
+  {
+   "name": "rehearse",
+   "title": "Rehearse",
+   "category": "desktop",
+   "description": "Practise any interview or talk out loud: job, technical, case, admission, visa, medical, media and podcast interviews, presentations, investor and sales pitches, product demos, thesis defences and speeches. Hermes asks realistic questions aloud in a natural voice (Hermes's own text-to-speech), you a",
+   "topic": "career"
+  },
+  {
+   "name": "submission-desk",
+   "title": "Submission Desk",
+   "category": "tools",
+   "description": "Readiness ledger for one application (a grant, a scholarship, a university or a job portal). Each requirement you confirm is tied to a verbatim quote from your saved instructions, the exact portal field label and the exact file revision (SHA-256). Local checks run on those bytes (real format, exact ",
+   "topic": "career"
+  },
+  {
+   "name": "filmease",
+   "title": "FilmEase",
+   "category": "tools",
+   "description": "Find streamable movies and manage a FilmEase watchlist, ratings, private reviews, viewing history, taste, and streaming preferences. Portable skill plus remote MCP; FilmEase account and Hermes-managed OAuth required (native config step documented). Remote FilmEase service records authenticated activ",
+   "topic": "movies and books"
+  },
+  {
+   "name": "watch-with-me",
+   "title": "",
+   "category": "tools",
+   "description": "Follows Plex playback and publishes sourced, spoiler-safe notes about the scene you are watching. Disclosure \u2014 once you link Plex (plex.tv PIN sign-in; the token is kept in plugin data), a background thread polls your Plex server for playback and, by default, auto-claims your own account's streams; ",
+   "topic": "movies and books"
+  },
+  {
+   "name": "dramatis",
+   "title": "Dramatis",
+   "category": "tools",
+   "description": "Spoiler-safe reading companion: open a local EPUB, remember how far you have read, and ask who someone is or what happened. Answers come only from text at or before that position, with a short quote. Native Python plugin (plugin.yaml + __init__.py). Disclosure \u2014 reads EPUB files from paths you suppl",
+   "topic": "movies and books"
+  },
+  {
+   "name": "zalodesk",
+   "title": "ZaloDesk",
+   "category": "tools",
+   "description": "Read, search and reply to Zalo chats, personal Zalo accounts and Zalo Official Accounts (OA), through the hosted ZaloDesk MCP: catch up on unread conversations, read and search messages, send replies, find customers by phone, labels and friend requests; and for the workspace owner, the team (Ph\u00e2n qu",
+   "topic": "chat apps"
+  },
+  {
+   "name": "reaction-feedback",
+   "title": "",
+   "category": "general",
+   "description": "Lets the agent see the emoji reactions you leave on its Telegram messages: react \ud83d\udc4d or \ud83d\udc4e to a reply and the agent's next turn in that private chat starts with a short note naming the reaction and the message it followed. Disclosure \u2014 registers pre_gateway_dispatch (always returns None, so dispatch is",
+   "topic": "chat apps"
+  },
+  {
+   "name": "huddo",
+   "title": "",
+   "category": "tools",
+   "description": "Huddo \u2014 group chat where people and AI agents talk in the same room. Join by invite link, read and reply, edit or unsend your own messages, react, answer or close polls and forms, whisper to one member, pair with your human, wait for new messages, and read or update room apps (shared mini-apps such ",
+   "topic": "chat apps"
+  },
+  {
+   "name": "hermes-whoop",
+   "title": "WHOOP Readiness",
+   "category": "tools",
+   "description": "Your own WHOOP data in Hermes: today's recovery, HRV, resting heart rate, SpO2, skin temperature, sleep and strain against your personal 30-day baseline, history over any date range and 7-vs-30-day trends, from the official WHOOP API v2 with your own WHOOP developer app. Adds a /whoop command that a",
+   "topic": "health"
+  },
+  {
+   "name": "health-data",
+   "title": "",
+   "category": "tools",
+   "description": "Local health and daily-context data store for Hermes.",
+   "topic": "health"
+  },
+  {
+   "name": "relic-gumi",
+   "title": "RELIC Gumi",
+   "category": "general",
+   "description": "A companion that gets to know you and supports self-reflection, built on published psychometric instruments (TIPI for the Big Five, ECR-RS for attachment) as a self-report baseline plus consented check-ins, with an output safety critic and Telegram or Desktop onboarding. Not a diagnostic tool; based",
+   "topic": "health"
+  },
+  {
+   "name": "fashion-design",
+   "title": "",
+   "category": "tools",
+   "description": "Fashion design toolkit for drafting ideas, tech packs, size sheets, and manufacturing prep",
+   "topic": "design"
+  },
+  {
+   "name": "stitchslop",
+   "title": "Stitch Slop",
+   "category": "tools",
+   "description": "Work on the embroidery design open in Stitch Slop, watch it in a pane, and digitize artwork into machine stitch files. Ships the bridge its tab dials into (loopback WebSocket, protocol 1 of stitchslop.com/agent), a viewer page that streams a dedicated Chrome window and forwards clicks and keys, four",
+   "topic": "design"
+  },
+  {
+   "name": "details",
+   "title": "Details",
+   "category": "tools",
+   "description": "Find curated website design references, inspect motion and implementation evidence, and retrieve reusable Vault components. Includes the details-design skill. Every tool call sends its arguments to https://api.details.so/mcp using the connected member's account. Available tools depend on that accoun",
+   "topic": "design"
+  },
+  {
+   "name": "hallway-test",
+   "title": "Hallway Test",
+   "category": "tools",
+   "description": "Five simulated people with code-enforced limits (low vision, screen reader, colour blindness, tremor) usability-test your web page in real browsers and report who got stuck and why. Disclosure \u2014 the hallway_test tool opens the page you or the agent name in headless Chromium (Playwright) and five sim",
+   "topic": "design"
+  },
+  {
+   "name": "doom",
+   "title": "Doom",
+   "category": "general",
+   "description": "Play Doom in a dashboard tab. The GPL engine runs as plain JavaScript on Freedoom or your own WAD. Disclosure \u2014 The Doom engine is Emscripten-compiled JavaScript (doomgeneric, GPL) committed as a generated file and built by hand from the repo's engine/build.sh; clicking \"Download Freedoom\" fetches t",
+   "topic": "games"
+  },
+  {
+   "name": "hermagotchi",
+   "title": "Hermagotchi",
+   "category": "general",
+   "description": "Co-op virtual pets for Hermes: raise a pet, fight deterministic async battles, earn Bits, unlock cosmetics up to mythic tier, climb a seasonal leaderboard, and chat, DM, challenge and taunt other players in a native pane in the Hermes web app and Desktop (Habitat, Battle, Shop, Leaderboard and Socia",
+   "topic": "games"
+  },
+  {
+   "name": "thott-bot",
+   "title": "thott.bot",
+   "category": "tools",
+   "description": "Everything about World of Warcraft: Forever in your AI, from every change to live auction prices. Disclosure \u2014 hosted-only connector with no local code: every tool call goes to thott.bot's server (mcp.thott.bot), which records the queries your agent sends it (not your conversation, and not used to t",
+   "topic": "games"
+  },
+  {
+   "name": "tone-forge",
+   "title": "ToneForge",
+   "category": "tools",
+   "description": "AI guitar tone engineer for IK Multimedia AmpliTube 5 inside Hermes Agent: plain-language tone recipes (ordered chain, amp/cab families, mic placement, pedals, 7-band EQ, noise gate, levels) with a per-decision rationale, a versioned JSON preset library, a reference-track analyser that sets the numb",
+   "topic": "music"
+  },
+  {
+   "name": "rhythm-reaper",
+   "title": "The Rhythm Reaper",
+   "category": "tools",
+   "description": "A hip-hop producer desk \u2014 41 lanes across seven families (foundational, trap, drill, melodic, alt, hard, conscious), each with the full production spec (tempo family, key centres, drum programme, low end, harmony and sample source, vocal delivery, metatag vocabulary, exclude list, generation notes) ",
+   "topic": "music"
+  },
+  {
+   "name": "word-miner",
+   "title": "",
+   "category": "tools",
+   "description": "Turn any text you are consuming (lyrics, subtitles, articles, chat) into a personal vocabulary deck and run short daily spaced-repetition sessions inside Hermes. Any language pair. Local only \u2014 SQLite event log, SM-2-like scheduler with response-time adjustment, 3+3+3+1 sessions, two-stage graduatio",
+   "topic": "learning"
+  },
+  {
+   "name": "homework-coach",
+   "title": "Homework Coach",
+   "category": "tools",
+   "description": "Homework photos and teacher updates become checked daily math practice PDFs and a separate parent key. Parent I/S/N feedback guides difficulty. Includes a class plan, read-back corrections, progress/history, a scheduling blueprint and a Desktop workspace. Data stays on the selected Hermes backend; p",
+   "topic": "learning"
+  },
+  {
+   "name": "hermes-zotero",
+   "title": "Zotero Library",
+   "category": "tools",
+   "description": "Search and read the papers in your own Zotero library before going to the web: a local, read-only full-text index (SQLite FTS5, BM25) built from a copy of Zotero's database, so it works with Zotero open or closed. Four tools (zotero_search with a strong/thin/none coverage verdict, zotero_read for pa",
+   "topic": "research"
+  },
+  {
+   "name": "research-notes",
+   "title": "",
+   "category": "tools",
+   "description": "Research notes for Hermes: fetch web pages as text, save notes with tags, search notes, list notes, and delete notes. All data stored locally in JSON. ",
+   "topic": "research"
+  },
+  {
+   "name": "worldmonitor",
+   "title": "WorldMonitor",
+   "category": "tools",
+   "description": "Source-aware global intelligence through WorldMonitor's hosted MCP: country risk, conflicts, markets, energy, shipping and natural hazards. Configuration-only Agent Plugins v1 package with one skill. Public source inventory works without credentials; other intelligence requires a signed-in account a",
+   "topic": "research"
+  },
+  {
+   "name": "colorado-traffic",
+   "title": "",
+   "category": "tools",
+   "description": "Live Colorado highway events from CDOT COtrip. No API key. Default corridor is I-70 Golden to east Denver. Separates incidents happening now from scheduled work and unverified Waze reports.",
+   "topic": "maps"
+  },
+  {
+   "name": "solverforge-routing",
+   "title": "SolverForge Routing",
+   "category": "tools",
+   "description": "Personal multi-stop driving trips: tell Hermes where you need to go, review the places it finds, and a SolverForge constraint solver orders the stops on OpenStreetMap roads. Change plans in the conversation (skip a stop, choose the first visit, add a place, finish elsewhere) and the trip is repaired",
+   "topic": "maps"
+  },
+  {
+   "name": "field-from-above",
+   "title": "",
+   "category": "tools",
+   "description": "Free Sentinel-2 NDRE and terrain context for a Polish parcel or any point via GUGiK ULDK/NMT and Earth Search STAC. Disclosure \u2014 requested parcel IDs or coordinates (as bounding boxes) are sent to uldk.gugik.gov.pl, earth-search.aws.element84.com and services.gugik.gov.pl, and Sentinel-2 band files ",
+   "topic": "maps"
+  },
+  {
+   "name": "overhead",
+   "title": "Overhead",
+   "category": "tools",
+   "description": "What changed at this place between these dates? Measures vegetation loss and gain, burned area by severity (dNBR) and water change in hectares anywhere on Earth from free Sentinel-2 L2A imagery, and delivers a before | after | change panel or a timelapse GIF to every surface, with an interactive bef",
+   "topic": "maps"
+  },
+  {
+   "name": "picky",
+   "title": "Picky",
+   "category": "tools",
+   "description": "Picks the best place to sleep (tonight or for your dates) and the best ride there, then sets up the reservation: real OpenStreetMap stays auto-ranked by OSRM drive time with a one-line why and backups, Uber/Bolt/Lyft options with rough fare and ETA estimates, and Booking.com/Airbnb/Expedia/Google Ho",
+   "topic": "travel"
+  },
+  {
+   "name": "jalancost",
+   "title": "JalanCost",
+   "category": "tools",
+   "description": "Offline Malaysian road-trip fuel and toll estimates with per-person splits, calculated only from user-supplied values.",
+   "topic": "travel"
+  },
+  {
+   "name": "freshdesk",
+   "title": "",
+   "category": "tools",
+   "description": "Generic Freshdesk API v2 tools for Hermes Agent. Unaffiliated community connector, not a Freshworks product. Disclosure \u2014 calls the account's native Freshdesk HTTPS origin with profile-scoped secrets FRESHDESK_DOMAIN and FRESHDESK_API_KEY; downloads an attachment into the Hermes cache only from that",
+   "topic": "business"
+  },
+  {
+   "name": "raise",
+   "title": "Raise",
+   "category": "tools",
+   "description": "Fundraising desk for founders: imports your investor pipeline, ranks investors on cited evidence, checks every draft against code gates (one conversation per firm, a pass closes the firm, 3 touches per channel, working-day cool-downs) and lints it against your verified claims before it reaches your ",
+   "topic": "business"
+  },
+  {
+   "name": "global-business-culture",
+   "title": "Global Business Culture",
+   "category": "tools",
+   "description": "Cross-cultural business intelligence: country culture briefs and home-vs-host gap analysis computed from bundled Meyer, Hofstede, GLOBE and Lewis data. Three deterministic tools (culture_brief, culture_gap_analysis, culture_countries), a /culture command and a bundled practitioner-playbook skill. 57",
+   "topic": "business"
+  },
+  {
+   "name": "umami-digest",
+   "title": "Umami Digest",
+   "category": "tools",
+   "description": "Each morning one letter arrives with yesterday's pageviews, visitors, day-over-day change, the top five pages by pageviews, and a surge flag from the Umami instance you already run, with no model. Umami 3.4.1 returns expanded paths 500 at a time in visitor order. The letter sends limit 500 and walks",
+   "topic": "business"
+  },
+  {
+   "name": "tenderlead-agent-plugin",
+   "title": "TenderLead bid review",
+   "category": "tools",
+   "description": "Review supplied UK tender documents against a supplier profile before a BID or SKIP decision. Agent Plugins v1 package with one local skill; it does not fetch live tenders or submit bids. Disclosure: the skill reads only material the user supplies to Hermes; no plugin code, install scripts, network ",
+   "topic": "business"
+  },
+  {
+   "name": "rowverdict",
+   "title": "RowVerdict",
+   "category": "tools",
+   "description": "Review drafted CSV/XLSX/JSON contracts, fix quarantined rows through replay, and export source-bound receipts plus self-contained HTML audits locally.",
+   "topic": "documents"
+  },
+  {
+   "name": "artifacts",
+   "title": "Hermes Artifacts",
+   "category": "tools",
+   "description": "Private library for the finished documents agents make (self-contained HTML, Markdown, SVG, PNG, WebP), with an Artifacts dashboard tab and explicit, expiring, revocable guest links for one artifact each. Early public preview. Disclosure \u2014 the plugin is a client of a separate Artifacts service you r",
+   "topic": "documents"
+  },
+  {
+   "name": "faxforagents",
+   "title": "Fax for Agents",
+   "category": "tools",
+   "description": "Fax preparation, quotes, approved sending, delivery status, cancellation, and inbox reading. The portable package starts faxforagents-mcp 0.4.1 through npx and sends data to api.faxforagents.com. MCP also exposes guidance, capabilities, balance, document previews, review requests, and billed extract",
+   "topic": "documents"
+  },
+  {
+   "name": "print-tools",
+   "title": "CUPS Print Tools",
+   "category": "tools",
+   "description": "Printer-agnostic Linux CUPS printing for Hermes: queue status, files, wrapped text, and styled one-page letters. Disclosure \u2014 every print tool call sends a real job to a CUPS queue installed on this machine (local or network printer, 1-5 copies, at most 20 pages) with no approval prompt; `print_file",
+   "topic": "documents"
+  },
+  {
+   "name": "public-holidays",
+   "title": "",
+   "category": "tools",
+   "description": "Public holidays for 200+ countries and their regions, plus workday checks, workday counts and deadline math (N working days after a date), computed in code instead of by the model. Disclosure \u2014 sends HTTPS GET requests to date.nager.at (Nager.Date, free, no key) carrying only a country code and a ye",
+   "topic": "calendar"
+  },
+  {
+   "name": "lfg-alarm",
+   "title": "LFG Alarm",
+   "category": "tools",
+   "description": "Put a real alarm on your phone from Hermes, and on your friends', family's or community's phones, ringing together: for a time, an event, a post, a stream going live, a token price, or anything that can call a link. Portable Agent Plugins v1 package (plugin.json + mcp.json + skills/), with one workf",
+   "topic": "calendar"
+  },
+  {
+   "name": "ask-ledger",
+   "title": "Ask Ledger",
+   "category": "tools",
+   "description": "Keeps a durable ledger of what you asked and promised: each message becomes an ask (A1, A2 ...) with a state (open, in progress, needs you, answered, closed), and todos (T1, T2 ...) that you add, or that the agent adds when you commit to something (marked added by agent; at most 2 a turn and 10 a da",
+   "topic": "tasks"
+  },
+  {
+   "name": "buildpilot",
+   "title": "BuildPilot",
+   "category": "tools",
+   "description": "Project tracking and progress recovery for Hermes Agent. Create projects, manage tasks, save progress checkpoints, and retrieve project context across sessions using local SQLite storage.",
+   "topic": "tasks"
+  },
+  {
+   "name": "reframe-proceed",
+   "title": "",
+   "category": "tools",
+   "description": "Personal planning tools and an opt-in skill for vision, plans, check-ins, and reviews. Disclosure: stores user text in Hermes profile-scoped storage that persists after updates/removal; same-period saves replace records. No third-party network calls, shell commands, credentials, or telemetry.",
+   "topic": "tasks"
+  },
+  {
+   "name": "factledger",
+   "title": "Factledger",
+   "category": "tools",
+   "description": "A typed-facts ledger with structural truth \u2014 the agent records durable facts (prices, statuses, limits, decisions, capabilities) once and search/show them whenever they matter. For every (scope, subject, predicate) exactly one row is active; a new value closes the previous one (valid_to + superseded",
+   "topic": "knowledge"
+  },
+  {
+   "name": "local_knowledge",
+   "title": "",
+   "category": "tools",
+   "description": "Native Hermes tools for a configurable local capability index: search/get/neighbors plus local usage feedback/reporting.",
+   "topic": "knowledge"
+  },
+  {
+   "name": "bhived",
+   "title": "bhived",
+   "category": "tools",
+   "description": "Shared lessons for AI agents over MCP: before a task, the agent can look up fixes, known mistakes and API changes that other agents already verified, and write back what it verifies itself. Lessons rise or sink as other agents corroborate or contradict them. Bundles a skill that tells the agent when",
+   "topic": "knowledge"
+  },
+  {
+   "name": "hermes-tabular",
+   "title": "",
+   "category": "tools",
+   "description": "Tabular AI that grows with your tables \u2014 Hermes skills for honest tabular ML, one entry point. Disclosure \u2014 Installing pulls numpy, pandas, scikit-learn, pyarrow, joblib and pyyaml into Hermes's environment. The skills have the agent run Python on your data files, may ask it to pip install catboost,",
+   "topic": "data"
+  },
+  {
+   "name": "weightscope",
+   "title": "WeightScope",
+   "category": "tools",
+   "description": "Offline-by-default safetensors checkpoint inspector: per-tensor and per-layer weight diffs (L2, relative change, cosine, NaN/Inf) via tools ckpt_summary and ckpt_diff, plus `hermes weightscope` and `/weightscope`. Optional remote GPU worker, and an opt-in `demo --fetch` of two pinned public SmolLM2-",
+   "topic": "data"
+  },
+  {
+   "name": "davinci-resolve",
+   "title": "",
+   "category": "tools",
+   "description": "Control DaVinci Resolve Studio live, or generate importable interchange files for free DaVinci Resolve.",
+   "topic": "video"
+  },
+  {
+   "name": "hermes-lang-it",
+   "title": "",
+   "category": "general",
+   "description": "Italian (Italiano) language pack for Hermes Agent \u2014 UI translation for core (approval prompts, gateway/slash replies, CLI, tips), TUI and Desktop. Coverage: core 3437/3437, TUI 1259/1259 and Desktop ~5,000 keys (missing ones fall back to English). Parser-safe: hard-parsed menu brackets and [Y/n] pro",
+   "topic": "hermes desktop"
+  },
+  {
+   "name": "followup-chips",
+   "title": "",
+   "category": null,
+   "description": "Clickable follow-up question chips under assistant replies. One click sends the question as the next turn; Hermes arc-border hover; the choice persists per block across reload. Single-file desktop plugin, no native components.",
+   "topic": "hermes desktop"
+  }
+ ],
+ "left_out": [
+  {
+   "name": "aircraft-doppler-geolocation",
+   "title": "Aircraft Doppler Geolocation",
+   "category": "tools",
+   "description": "Detect aircraft flyovers in a recording (Doppler tones, plus experimental ground-reflection broadband jet passes) and estimate where it was made by scoring them against adsb.lol ADS-B history, with a posterior heatmap, 68/95% areas and a confidence flag. Provides the doppler_detect and doppler_locat"
+  },
+  {
+   "name": "survey-desk",
+   "title": "Survey Desk",
+   "category": "tools",
+   "description": "Exact land-survey computation for Hermes: closed traverses with misclosure and Bowditch/transit adjustment, area cross-checked by two independent methods, blunder-leg detection when a traverse fails tolerance, PROJ datum conversion (Minna, Nigeria belts, UTM, any EPSG) with the published datum-shift"
+  },
+  {
+   "name": "jp-address",
+   "title": "",
+   "category": "tools",
+   "description": "Splits one Japanese address into prefecture, city, town and the remainder with address_split, built on Geolonia's address data (CC BY 4.0, from the Digital Agency address base registry). Give it a Japanese postal address as written, such as \u6771\u4eac\u90fd\u5343\u4ee3\u7530\u533a\u971e\u304c\u95a22-1-2, and it returns the prefecture, city and to"
+  },
+  {
+   "name": "jp-kokkai",
+   "title": "",
+   "category": "tools",
+   "description": "Each watch run costs 0 tokens, and the unmanned run holds no tools. Posts new Diet meeting hits as metadata and the official meeting URL, with kokkai_search, kokkai_speech, and kokkai_watch. Disclosure \u2014 Talks only to kokkai.ndl.go.jp over HTTPS GET with no API key. kokkai_speech requests speech tex"
+  },
+  {
+   "name": "jp-subsidies",
+   "title": "",
+   "category": "tools",
+   "description": "Japanese subsidy search and weekly watch, built on the jGrants public API. Disclosure \u2014 Searches api.jgrants-portal.go.jp with no API key and no daily request cap; each call waits at most 60 seconds and retries at most twice, and a result is a search match, not proof that every subsidy came back. Th"
+  },
+  {
+   "name": "genealogy-research-recipes",
+   "title": "Kinprove Genealogy Research Recipes",
+   "category": "general",
+   "description": "Fact-checked genealogy instructions for DNA evidence, record searches and proof judgment. Native read-only skill bundle with recipe sources and an offline given-name lookup helper. Disclosure \u2014 optional third-party services and commands described by recipes require separately authorized tools and cr"
+  },
+  {
+   "name": "uk-companies",
+   "title": "UK Companies",
+   "category": "tools",
+   "description": "UK Companies returns one sheet. Disclosure \u2014 Names and numbers to api.company-information.service.gov.uk as HTTP Basic with COMPANIES_HOUSE_API_KEY when set. Registered name to www.thegazette.co.uk, no key. A double quote is not sent. Charity names and numbers to api.charitycommission.gov.uk with CH"
+  },
+  {
+   "name": "surplus-intelligence-seller",
+   "title": "Surplus Intelligence seller",
+   "category": "tools",
+   "description": "Sell the full daily Venice DIEM allowance on Surplus Intelligence before 00:00 UTC. Seller-only and Venice-only: lists DIEM-funded Venice inference as Surplus offers, rebalances discount and caps through the epoch, and deepens price late in the day so leftover DIEM (which does not roll over) is avoi"
+  },
+  {
+   "name": "hermes-jailbreak-kernel",
+   "title": "",
+   "category": "general",
+   "description": "Jailbreak-kernel plugin for Hermes Agent (ported from dsh-infinite-gen-4): session-scoped modes (off/slim/on/full) with kernel profiles (core/research/creative/max), session-aware system-prompt sections, llm_request request-layer system rebuild, and opencode session rotation, removing model refusals"
+  },
+  {
+   "name": "decision-brief",
+   "title": "",
+   "category": "general",
+   "description": "Decision Brief MVP - a human decision layer for consequential agent and creative decisions."
+  },
+  {
+   "name": "ethics-filter",
+   "title": "Ethics Filter",
+   "category": "tools",
+   "description": "Score any decision across six ethics modules \u2014 environmental, fairness, transparency, leadership, framework, compliance \u2014 and get GREEN, AMBER or RED back with the reasoning attached. Ships /ethics and the ethics_evaluate tool. Disclosure \u2014 reads the rubrics and constitution templates bundled in the"
+  },
+  {
+   "name": "werk",
+   "title": "werk",
+   "category": "tools",
+   "description": "Plain-language equipment description in, engineering package out: werk triages the description into domains, breaks it into work items, runs them through review roles and domain-pack checks (a build123d STEP model for mechanical work; the elec pack ships SKiDL/KiCad tools but designs nothing in this"
+  }
+ ]
+}
